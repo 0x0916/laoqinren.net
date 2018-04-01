@@ -1,0 +1,5 @@
+baseURL = "http://laoqinren.net"
+languageCode = "en-us"
+title = "我的博客"
+theme = "ananke"
+hascjklanguage = true
