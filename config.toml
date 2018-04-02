@@ -1,4 +1,4 @@
-baseURL = "http://laoqinren.net"
+baseURL = "http://linux.laoqinren.net"
 languageCode = "en-us"
 title = "我的博客"
 theme = "even"
