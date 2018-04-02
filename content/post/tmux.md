@@ -2,9 +2,18 @@
 title: "tmux快捷键总结"
 date: 2017-02-01T19:20:04-07:00
 tags: ["terminal", "others"]
-catagorites: ["Development"]
+categories: ["Development"]
 ---
 
+`tmux` (`Terminal Multiplexer`的简称), 是一款优秀的终端复用软件，类似 `GNU screen`，但比`screen`更出色。
+
+`Tmux` 用于在一个终端窗口中运行多个终端会话。不仅如此，你还可以通过 `Tmux` 使终端会话运行于后台或是按需接入、断开会话，这个功能非常实用。
+
+本文总结了`tmux`常用的一些快捷键。
+
+<!--more-->
+
+## session
 
 `session`指的是按下tmux命令后 存在的连接便是session
 
@@ -19,6 +28,8 @@ catagorites: ["Development"]
 |删除所有session |Ctrl+b :kill-server |
 |删除指定session  |tmux kill-session -t $session_name |
 
+## window
+
 window在session里，可以有N个window，并且window可以在不同的session里移动
 
 |  功能   |  命令    |
@@ -31,6 +42,8 @@ window在session里，可以有N个window，并且window可以在不同的sessio
 |在多个window里搜索关键字|Ctrl+b f |
 |在相邻的两个window里切换 |Ctrl+b l
 
+
+## pane
 
 pane在window里，可以有N个pane，并且pane可以在不同的window里移动、合并、拆分
 
@@ -54,7 +67,7 @@ pane在window里，可以有N个pane，并且pane可以在不同的window里移�
 | 显示pane编号| Ctrl+b q |
 | 按顺序移动pane位置| Ctrl+b Ctrl+o |
 
-其他：
+## other
 
 |  功能   |  命令    |
 |---|---|
