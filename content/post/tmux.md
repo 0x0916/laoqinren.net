@@ -1,8 +1,34 @@
 ---
 title: "tmux快捷键总结"
 date: 2017-02-01T19:20:04-07:00
+lastmod: 2017-04-01T19:20:04-07:00
 tags: ["terminal", "others"]
 categories: ["Development"]
+keywords: []
+description: ""
+author: ""
+
+# You can also close(false) or open(true) something for this content.
+# P.S. comment can only be closed
+# comment: true
+# toc: false
+autoCollapseToc: false
+postMetaInFooter: false
+# hiddenFromHomePage: true
+# You can also define another contentCopyright. e.g. contentCopyright: "This is another copyright."
+contentCopyright: false
+#reward: true
+mathjax: false
+mathjaxEnableSingleDollar: false
+
+flowchartDiagrams:
+  enable: false
+  options: ""
+
+sequenceDiagrams: 
+  enable: false
+  options: ""
+
 ---
 
 `tmux` (`Terminal Multiplexer`的简称), 是一款优秀的终端复用软件，类似 `GNU screen`，但比`screen`更出色。

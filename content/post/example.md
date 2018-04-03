@@ -2,7 +2,7 @@
 title: "Example"
 date: 2018-04-02T23:30:42+08:00
 lastmod: 2018-04-02T23:30:42+08:00
-draft: true
+draft: false
 keywords: []
 description: ""
 tags: []
@@ -15,7 +15,7 @@ comment: true
 # toc: false
 # autoCollapseToc: false
 postMetaInFooter: false
-hiddenFromHomePage: false
+hiddenFromHomePage: true
 # You can also define another contentCopyright. e.g. contentCopyright: "This is another copyright."
 contentCopyright: false
 #reward: true
