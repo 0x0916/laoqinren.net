@@ -1,0 +1,42 @@
+  {{/*
+      ## Linux Kernel
+  
+      ### Params:
+  
+      - `tag`
+        required param
+	the tag name
+  
+      - `file`
+        required param
+	the file name
+  
+      - `from`
+        optional param
+	the start line
+
+      - `to`
+        optional param
+	the end line
+
+      ### Examples:
+  
+      - Simple
+  
+        {{% linux "v4.16" "init/main.c" %}}
+        {{% linux "v4.16" "init/main.c" "515" %}}
+        {{% linux "v4.16" "init/main.c" "515" "524" %}}
+  
+      - Named Params
+  
+        {{% linux tag="v4.16" file="init/main.c" %}}
+        {{% linux tag="v4.16" file="init/main.c" from="515" %}}
+        {{% linux tag="v4.16" file="init/main.c" from="515" to="524" %}}
+  
+  */}}
+  
+  {{- if .IsNamedParams -}}
+    <a target="_blank" href="https://github.com/torvalds/linux/blob/{{ .Get "tag" }}/{{ .Get "file" }}{{ if isset .Params "from" }}#L{{ .Get "from" }}{{ if isset .Params "to" }}#L{{ .Get "to" }}{{ end }}{{ end }}"> {{ .Get "file" }}{{ if isset .Params "from" }}(line {{ .Get "from" }}{{ if isset .Params "to" }}-{{ .Get "to"}}{{ end }}){{ end }} </a>
+  {{- else -}}
+    <a target="_blank" href="https://github.com/torvalds/linux/blob/{{ .Get 0 }}/{{ .Get 1 }}{{ if isset .Params 2 }}#L{{ .Get 2 }}{{ if isset .Params 3 }}#L{{ .Get 3 }}{{ end }}{{ end }}"> {{ .Get 1}}{{ if isset .Params 2 }}(line {{ .Get 2}}{{ if isset .Params 3 }}-{{ .Get 3 }}{{ end }}){{ end }}</a>
+  {{- end -}}
