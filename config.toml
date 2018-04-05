@@ -26,18 +26,28 @@ copyright = ""            # default: author.name ↓        # 默认为下面配
   identifier = "home"
   url = "/"
 [[menu.main]]
-  name = "Archives"
+  name = "linux"
   weight = 20
-  identifier = "archives"
-  url = "/post/"
+  identifier = "linux"
+  url = "/linux/"
+[[menu.main]]
+  name = "kernel"
+  weight = 30
+  identifier = "kernel"
+  url = "/kernel/"
+[[menu.main]]
+  name = "blog"
+  weight = 40
+  identifier = "blog"
+  url = "/posts/"
 [[menu.main]]
   name = "Tags"
-  weight = 30
+  weight = 50
   identifier = "tags"
   url = "/tags/"
 [[menu.main]]
   name = "Categories"
-  weight = 40
+  weight = 60
   identifier = "categories"
   url = "/categories/"
 
