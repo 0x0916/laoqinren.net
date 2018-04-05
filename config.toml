@@ -1,6 +1,6 @@
 baseURL = "http://linux.laoqinren.net"
 languageCode = "en"
-title = "article about linux"
+title = "Notes about linux and my work"
 theme = "even"
 defaultContentLanguage = "en"                             # en / zh-cn / ... (This field determines which i18n file to use)
 enableRobotsTXT = true
@@ -48,12 +48,12 @@ copyright = ""            # default: author.name ↓        # 默认为下面配
   since = "2016"            # Site creation time          # 站点建立时间
 
   # site info (optional)                                  # 站点信息（可选，不需要的可以直接注释掉）
-  logoTitle = "Linux"        # default: the title value    # 默认值: 上面设置的title值
+  logoTitle = "Notes"        # default: the title value    # 默认值: 上面设置的title值
   keywords = ["Linux", "kernel"]
-  description = "article for linux."
+  description = "Notes about my work and linux kernel"
 
   # paginate of archives, tags and categories             # 归档、标签、分类每页显示的文章数目，建议修改为一个较大的值
-  archivePaginate = 5
+  archivePaginate = 100
 
   # The date format to use; for a list of valid formats, see https://gohugo.io/functions/format/
   dateFormatToUse = "2006-01-02"
