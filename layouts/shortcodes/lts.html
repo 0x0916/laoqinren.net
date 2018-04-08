@@ -1,0 +1,36 @@
+{{/*
+    ## Linux Stable Kernel
+
+    ### Params:
+
+    - `tag`
+      required param
+the tag name
+
+    - `file`
+      required param
+the file name
+
+    - `line`
+      optional param
+the start line
+
+    ### Examples:
+
+    - Simple
+
+      {{% lts "4.16.1" "init/main.c" %}}
+      {{% lts "4.16.1" "init/main.c" "515" %}}
+
+    - Named Params
+
+      {{% lts tag="4.16" file="init/main.c" %}}
+      {{% lts tag="4.16" file="init/main.c" line="515" %}}
+
+*/}}
+
+{{- if .IsNamedParams -}}
+  <a target="_blank" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/tree/{{ .Get "file" }}?=v{{ .Get "tag" }}{{ if isset .Params "line" }}#n{{ .Get "line" }}{{ end }}"> {{ .Get "file" }}{{ if isset .Params "line" }}(line {{ .Get "line" }}){{ end }} </a>
+{{- else -}}
+  <a target="_blank" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/tree/{{ .Get 1 }}?=v{{ .Get 0 }}{{ if isset .Params 2 }}#n{{ .Get 2 }}{{ end }}"> {{ .Get 1}}{{ if isset .Params 2 }}(line {{ .Get 2}}){{ end }}</a>
+{{- end -}}
