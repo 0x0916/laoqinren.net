@@ -2,7 +2,7 @@
 title: "Linux OOM 机制分析"
 date: 2018-04-11T12:24:17+08:00
 lastmod: 2018-04-11T12:24:17+08:00
-draft: true
+draft: false
 keywords: ["oom"]
 description: ""
 tags: ["kernel", "linux", "oom"]
@@ -281,5 +281,15 @@ stress: FAIL: [31] (451) failed run completed in 0s
 
 ### 建议宿主机上的配置
 
+最优配置要看具体使用场景:
 
-TODO:
+* 对于`panic_on_oom`，如果是嵌入式场景，可以配置成`2`，当出现oom时，通过自动重启将系统恢复正常。但对于服务器系统来说，`panic`就不太友好了，建议配置为默认的0即可。
+
+* 对于`oom_dump_tasks`,如果是调试阶段，建议配置为`1`,如果在生产环境下，特别是系统上进程较多的情况下，建议配置为`0`。内核文档中也建议配置为`0`(参考：{{< linux tag="4.16" file="Documentation/sysctl/vm.txt" from="595" to="615" >}}).
+
+* 对于`oom_kill_allocating_task`,建议设置为默认值即可。
+
+
+### 参考文章
+
+* https://github.com/torvalds/linux/blob/v4.16/Documentation/sysctl/vm.txt
