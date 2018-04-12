@@ -54,6 +54,7 @@ int eventfd(unsigned int initval, int flags);
 调用这个函数就会返回一个新的文件描述符(`event object`)。2.6.27版本开始可以按位设置第二个参数(`flags`)。	
 
 第二个参数`flags`可以设置如下参数`EFD_CLOECEX`、`EFD_NONBLOCK`、`EFD_SEMAPHORE`。
+
 | flags | 含义|
 | --- | ---|
 |EFD_CLOEXEC|为新创建的描述符设置FD_CLOEXEC flag|
@@ -66,12 +67,8 @@ int eventfd(unsigned int initval, int flags);
 
 如果计数值`counter`的值不为0，读取成功，获得到该值。如果`counter`的值为0，非阻塞模式，会直接返回失败，并把`errno`的值指纹`EINVAL`。如果为阻塞模式，一直会阻塞到`counter`为非0位置。
 
-If EFD_SEMAPHORE was not specified and the eventfd counter
-                 has a nonzero value, then a read(2) returns 8 bytes
-                 containing that value, and the counter's value is reset to
-                 zero.
 * 如果没有设置 `EFD_SEMAPHORE`标记，当`counter`不为`0`时，`read`操作会返回`counter`的值，并将`counter`的值重置为`0`.
-* 如果设置了`EFD_SEMAPHORE`标记，当`counter`不为`0`时，`read`操作会返回`1`，并将`counter`的值减少1.
+* 如果设置了`EFD_SEMAPHORE`标记，当`counter`不为`0`时，`read`操作会返回`1`，并将`counter`的值减少`1`.
 				 
 				 
 ### write操作
