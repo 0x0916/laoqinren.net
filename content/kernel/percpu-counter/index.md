@@ -33,11 +33,13 @@ sequenceDiagrams:
 ---
 
 
-内核里很多模块都需要对一些事件进行统计，内核里提供了一个叫做`percpu_counter`的基础设施，来完成该任务。本文简单介绍了其用法和内核中的实现。
+内核里很多模块都需要对一些事件进行统计，有一个叫做`percpu_counter`的基础设施，来完成该任务。本文简单介绍了其用法和内核中的实现。
 
 <!--more-->
 
-### 对于单核，其数据结构定义如下：
+### 对于单核
+
+其数据结构定义如下：
 
 ```c
 struct percpu_counter {
@@ -45,9 +47,11 @@ struct percpu_counter {
 };
 ```
 
-对于单核来说，比较简单，其上的操作主要是对计数器`count`进行操作。
+对于单核来说，比较简单，其操作主要是对计数器`count`进行操作。
 
-### 对于多核，其数据结构定义如下：
+### 对于多核
+
+其数据结构定义如下：
 
 ```c
 struct percpu_counter {
@@ -62,7 +66,10 @@ struct percpu_counter {
 
 相比较于单核，多核稍微复杂一些，其为了提高效率，引用了`__percpu`变量`counters`，另外为了考虑`cpu`的热插拔，其有引入了字段`list`，用来将所有的`percpu_counter`链接到一起。
 
-其主要接口如下：
+
+### API接口
+
+其接口如下：
 
 * percpu_counter_init
 * percpu_counter_set
@@ -83,16 +90,16 @@ struct percpu_counter {
 对结构体`percpu_counter`操作时，如果只访问`s32 __percpu *counters;`则不需要加锁，如果访问`s64 count;`则需要加锁，防止竞争。
 
 
-内核为了近可能少的加锁，使用了一些编程技巧，对计数器增加或者减少计数时，大多数情况下不用加锁，只修改每`cpu`变量`s32 __percpu *counters;`，当计数超过一个范围时`[-batch, batch]`,则进行加锁，将每cpu变量`s32 __percpu *counters;`中的计数累计到`s64 count;`中。
+内核为了尽可能少的加锁，使用了一些编程技巧，对计数器增加或者减少计数时，大多数情况下不用加锁，只修改每`cpu`变量`s32 __percpu *counters;`，当计数超过一个范围时`[-batch, batch]`,则进行加锁，将每cpu变量`s32 __percpu *counters;`中的计数累计到`s64 count;`中。
 
 
-`percpu_counter_init`初始化`percpu_counter`中成员`count`特定的值，并分配每`cpu`变量`counters`;
+* `percpu_counter_init`初始化`percpu_counter`中成员`count`特定的值，并分配每`cpu`变量`counters`;
 
-`percpu_counter_set` 设置`percpu_counter`中成员`count`特定的值，并修改每cpu变量`counters`的值为`0`；
+* `percpu_counter_set` 设置`percpu_counter`中成员`count`特定的值，并修改每cpu变量`counters`的值为`0`；
 
-`percpu_counter_destroy` 释放`percpu_counter_init`中分配的每`cpu`变量`counters`;
+* `percpu_counter_destroy` 释放`percpu_counter_init`中分配的每`cpu`变量`counters`;
 
-`percpu_counter_inc/percpu_counter_dec/percpu_counter_add/percpu_counter_sub`四个方法主要对计数器进行操作，修改其值。修改过程中，就是用上面提到的技巧，尽可能少的加锁。
+* `percpu_counter_inc/percpu_counter_dec/percpu_counter_add/percpu_counter_sub`四个方法主要对计数器进行操作，修改其值。修改过程中，就是用上面提到的技巧，尽可能少的加锁。
 
 ```c
 void __percpu_counter_add(struct percpu_counter *fbc, s64 amount, s32 batch)
@@ -115,11 +122,11 @@ void __percpu_counter_add(struct percpu_counter *fbc, s64 amount, s32 batch)
 EXPORT_SYMBOL(__percpu_counter_add);
 ```
 
-`percpu_counter_sum_positive/percpu_counter_sum`计算该计数器的数值（精确值），需要加锁;
+* `percpu_counter_sum_positive/percpu_counter_sum`计算该计数器的数值（精确值），需要加锁;
 
-`percpu_counter_read/percpu_counter_read_positive`读出该计数器的粗略的数值，不需要加锁；
+* `percpu_counter_read/percpu_counter_read_positive`读出该计数器的粗略的数值，不需要加锁；
 
-`percpu_counter_compare` 用来比较计数器的数值和给定的数值的大小，这里也用到了上面提到的编程技巧，尽可能少的加锁。
+* `percpu_counter_compare` 用来比较计数器的数值和给定的数值的大小，这里也用到了上面提到的编程技巧，尽可能少的加锁。
 
 ```c
 /*                                                                                                                                             
@@ -152,11 +159,11 @@ EXPORT_SYMBOL(__percpu_counter_compare);
 
 ### batch大小
 
-该内核的基础设施全名叫`Fast batching percpu counters`，其能够减少加锁，提高效率，是由于选定了一个`batch`值，只有每cpu变量中计数器的值查过该范围后，才会加锁进行处理。
+该基础设施全名叫`Fast batching percpu counters`，其能够减少加锁，提高效率，是由于选定了一个`batch`值，只有每`cpu`变量中计数器的值查过该范围后，才会加锁进行处理。
 
 那么该值如何选定呢？该值默认为`32`，但可以根据`cpu`的个数进行调整：
 
-```
+```c
 int percpu_counter_batch __read_mostly = 32; // 最小值为32
 EXPORT_SYMBOL(percpu_counter_batch);
                                                                                                                                                
@@ -168,7 +175,7 @@ static void compute_batch_value(void)
 }
 ```
 
-当然用户可以自己指定`batch`的大小，比如`BDI`中
+**当然用户可以自己指定`batch`的大小**，比如`BDI`中
 
 ```
 // nr_cpu_ids    result
@@ -190,12 +197,11 @@ static inline void __add_bdi_stat(struct backing_dev_info *bdi,
 ```
 
 
-那该值为什么选定` (8*(1+ilog2(nr_cpu_ids))) `?需要进一步研究
+那该值为什么选定` (8*(1+ilog2(nr_cpu_ids))) `? 
 
-
-#### ` (8*(1+ilog2(nr_cpu_ids))) `
 
 内核中使用到`ilog2(nr_cpu_ids)`的地方如下：
+
 ```bash
 ~/linux (master) # grep -nr --color "ilog2(nr_cpu_ids"  ./
 ./fs/btrfs/disk-io.c:2596:                                      (1 + ilog2(nr_cpu_ids));
@@ -206,36 +212,37 @@ static inline void __add_bdi_stat(struct backing_dev_info *bdi,
 ./net/ipv4/udp.c:2855:  udp_busylocks_log = ilog2(nr_cpu_ids) + 4;
 ```
 
-对于`#define WB_STAT_BATCH (8*(1+ilog2(nr_cpu_ids)))` ,我们可以得到`CPU`个数和结果直接的关系如下：
+对于`#define WB_STAT_BATCH (8*(1+ilog2(nr_cpu_ids)))` , 我们可以得到`CPU`个数和结果直接的关系如下：
 
 ```
 // nr_cpu_ids    result            比较时的误差范围
-//  1            8								8
-//  2            16								32
-//  4            24						     	96
-//  8            32							   256
-// 16            40                            640
-// 32            48                 	      1536
-// 40            48 				     	  1920
-// 64            56                    	      3584
+//  1            8			8
+//  2            16			32
+//  4            24			96
+//  8            32			256
+// 16            40                    	640
+// 32            48                 	1536
+// 40            48 			1920
+// 64            56                    	3584
 ```
+
 从上面的列表可以看出：
 
-* cpu个数为1时，结果为8
-* 此后如果cpu个数翻倍的话，结果递增8
+* `cpu`个数为`1`时，结果为`8`
+* 此后如果`cpu`个数翻倍的话，结果递增`8`
 
 
-### 其他
+### hotplug
 
 
-对于支持cpu热插拔的系统，内核定义了静态的变量`percpu_counters`，将所有的`percpu_count`在链接到一起。
+对于支持`cpu热插拔`的系统，内核定义了静态的变量`percpu_counters`，将所有的`percpu_count`在链接到一起。
+
 ```c
  13 #ifdef CONFIG_HOTPLUG_CPU
- 14 static LIST_HEAD(percpu_counters);>-----// 所有的percpu_count在一个全局链表上
+ 14 static LIST_HEAD(percpu_counters);	//所有的percpu_count在一个全局链表上
  15 static DEFINE_SPINLOCK(percpu_counters_lock);
  16 #endif
- 
- ```
+```
  
 我的虚拟机器上，一共有`379`多个`percpu_count`。
 
