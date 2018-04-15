@@ -2,7 +2,7 @@
 title: "内核基础设施——percpu_counter"
 date: 2018-04-13T20:50:15+08:00
 lastmod: 2018-04-13T20:50:15+08:00
-draft: true
+draft: false
 keywords: []
 description: ""
 tags: ["kernel", "linux", "percpu_counter", "内核基础设施"]
@@ -35,11 +35,13 @@ sequenceDiagrams:
 
 内核里很多模块都需要对一些事件进行统计，有一个叫做`percpu_counter`的基础设施，来完成该任务。本文简单介绍了其用法和内核中的实现。
 
+>  注意：本文中引用的内核代码版本为`v4.4.128`。
+
 <!--more-->
 
 ### 对于单核
 
-其数据结构定义如下：
+其数据结构定义{{< lts tag="4.4.128" file="include/linux/percpu_counter.h" line="94">}}如下：
 
 ```c
 struct percpu_counter {
@@ -51,7 +53,7 @@ struct percpu_counter {
 
 ### 对于多核
 
-其数据结构定义如下：
+其数据结构定义{{< lts tag="4.4.128" file="include/linux/percpu_counter.h" line="19">}}如下：
 
 ```c
 struct percpu_counter {
@@ -78,20 +80,16 @@ struct percpu_counter {
 * percpu_counter_dec
 * percpu_counter_add
 * percpu_counter_sub
-* percpu_counter_sum_positive
 * percpu_counter_sum
+* percpu_counter_sum_positive
 * percpu_counter_read
 * percpu_counter_read_positive
 * percpu_counter_compare
 * percpu_counter_initialized
 
-
-
 对结构体`percpu_counter`操作时，如果只访问`s32 __percpu *counters;`则不需要加锁，如果访问`s64 count;`则需要加锁，防止竞争。
 
-
 内核为了尽可能少的加锁，使用了一些编程技巧，对计数器增加或者减少计数时，大多数情况下不用加锁，只修改每`cpu`变量`s32 __percpu *counters;`，当计数超过一个范围时`[-batch, batch]`,则进行加锁，将每cpu变量`s32 __percpu *counters;`中的计数累计到`s64 count;`中。
-
 
 * `percpu_counter_init`初始化`percpu_counter`中成员`count`特定的值，并分配每`cpu`变量`counters`;
 
@@ -99,7 +97,7 @@ struct percpu_counter {
 
 * `percpu_counter_destroy` 释放`percpu_counter_init`中分配的每`cpu`变量`counters`;
 
-* `percpu_counter_inc/percpu_counter_dec/percpu_counter_add/percpu_counter_sub`四个方法主要对计数器进行操作，修改其值。修改过程中，就是用上面提到的技巧，尽可能少的加锁。
+* `percpu_counter_inc/percpu_counter_dec/percpu_counter_add/percpu_counter_sub`四个方法主要对计数器进行操作，修改其值。修改过程中，就是用上面提到的技巧，尽可能少的加锁。{{< lts tag="4.4.128" file="lib/percpu_counter.c" line="75"  >}}
 
 ```c
 void __percpu_counter_add(struct percpu_counter *fbc, s64 amount, s32 batch)
@@ -122,11 +120,13 @@ void __percpu_counter_add(struct percpu_counter *fbc, s64 amount, s32 batch)
 EXPORT_SYMBOL(__percpu_counter_add);
 ```
 
-* `percpu_counter_sum_positive/percpu_counter_sum`计算该计数器的数值（精确值），需要加锁;
+> 技巧：这里特别注意`__this_cpu_sub(*fbc->counters, count - amount)`，乍一看，这里就是清零，为什么要写这么复杂呢？因为在计算`count`值到该行代码之间，该`cpu`对应的`percpu_counter`计数可能增加，所以只有这样写才是最正确的。
 
-* `percpu_counter_read/percpu_counter_read_positive`读出该计数器的粗略的数值，不需要加锁；
+* `percpu_counter_sum_positive/percpu_counter_sum`计算该计数器的数值（精确值），需要加锁，区别是`percpu_counter_sum_positive`返回值最小为0；;
 
-* `percpu_counter_compare` 用来比较计数器的数值和给定的数值的大小，这里也用到了上面提到的编程技巧，尽可能少的加锁。
+* `percpu_counter_read/percpu_counter_read_positive`读出该计数器的粗略的数值，不需要加锁, 区别是`percpu_counter_read_positive`返回值最小为0；
+
+* `percpu_counter_compare` 用来比较计数器的数值和给定的数值的大小，这里也用到了上面提到的编程技巧，尽可能少的加锁。先通过`percpu_counter_read`计算计数器的粗略值，此时不需要加锁，如果可以判断结果的话，就直接返回；如果判断不了结果的话，就得通过`percpu_counter_sum`来进一步加锁计算精确的计数值来进行比较，代码可参考：{{< lts tag="4.4.128" file="lib/percpu_counter.c" line="200">}}
 
 ```c
 /*                                                                                                                                             
@@ -159,9 +159,13 @@ EXPORT_SYMBOL(__percpu_counter_compare);
 
 ### batch大小
 
-该基础设施全名叫`Fast batching percpu counters`，其能够减少加锁，提高效率，是由于选定了一个`batch`值，只有每`cpu`变量中计数器的值查过该范围后，才会加锁进行处理。
+该基础设施全名叫`Fast batching percpu counters`，其能够减少加锁，提高效率，是由于选定了一个`batch`值，只有每`cpu`变量中计数器的值超过该范围后，才会加锁进行处理。
 
-那么该值如何选定呢？该值默认为`32`，但可以根据`cpu`的个数进行调整：
+> 注意：只有在多核的系统上，才需要batch这个机制。
+
+那么该值如何选定呢？
+
+内核中`batch`的大小为`cpu`个数的**两倍**，但最小值为`32`, 具体逻辑请查阅如下代码{{< lts tag="4.4.128" file="lib/percpu_counter.c" line="158" >}}:
 
 ```c
 int percpu_counter_batch __read_mostly = 32; // 最小值为32
@@ -238,11 +242,20 @@ static inline void __add_bdi_stat(struct backing_dev_info *bdi,
 对于支持`cpu热插拔`的系统，内核定义了静态的变量`percpu_counters`，将所有的`percpu_count`在链接到一起。
 
 ```c
- 13 #ifdef CONFIG_HOTPLUG_CPU
- 14 static LIST_HEAD(percpu_counters);	//所有的percpu_count在一个全局链表上
- 15 static DEFINE_SPINLOCK(percpu_counters_lock);
- 16 #endif
+#ifdef CONFIG_HOTPLUG_CPU
+static LIST_HEAD(percpu_counters);	//所有的percpu_count在一个全局链表上
+static DEFINE_SPINLOCK(percpu_counters_lock);
+#endif
 ```
+
+`percpu_counters_lock`自旋锁用来保护链表`percpu_counters`。
+
+在cpu下线时，需要完成以下动作：
+
+* 因为`batch`的大小跟`cpu`个数有关，所以要重新计算一下`batch`的大小。
+* 将要下线`cpu`对应的计数器添加到总的计数中，并清零该`cpu`对应的每`cpu`变量的值。
+
+详细的逻辑，请参考代码{{< lts tag="4.4.128" file="lib/percpu_counters.c" line="168" >}}
  
 我的虚拟机器上，一共有`379`多个`percpu_count`。
 
