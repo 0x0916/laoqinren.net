@@ -30,7 +30,7 @@ the start line
 */}}
 
 {{- if .IsNamedParams -}}
-  <a target="_blank" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/tree/{{ .Get "file" }}?=v{{ .Get "tag" }}{{ if isset .Params "line" }}#n{{ .Get "line" }}{{ end }}"> {{ .Get "file" }}{{ if isset .Params "line" }}(line {{ .Get "line" }}){{ end }} </a>
+  <a target="_blank" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/tree/{{ .Get "file" }}?h=v{{ .Get "tag" }}{{ if isset .Params "line" }}#n{{ .Get "line" }}{{ end }}"> {{ .Get "file" }}{{ if isset .Params "line" }}(line {{ .Get "line" }}){{ end }} </a>
 {{- else -}}
-  <a target="_blank" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/tree/{{ .Get 1 }}?=v{{ .Get 0 }}{{ if isset .Params 2 }}#n{{ .Get 2 }}{{ end }}"> {{ .Get 1}}{{ if isset .Params 2 }}(line {{ .Get 2}}){{ end }}</a>
+  <a target="_blank" href="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git/tree/{{ .Get 1 }}?h=v{{ .Get 0 }}{{ if isset .Params 2 }}#n{{ .Get 2 }}{{ end }}"> {{ .Get 1}}{{ if isset .Params 2 }}(line {{ .Get 2}}){{ end }}</a>
 {{- end -}}
