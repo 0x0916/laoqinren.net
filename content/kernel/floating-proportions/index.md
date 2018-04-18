@@ -125,7 +125,9 @@ struct fprop_local_percpu {
 
 以下函数所在的文件为：{{< lts "4.4.128" "include/linux/flex_proportions.h">}}和{{< lts "4.4.128" "lib/flex_proportions.c" >}}。
 
-### fprop_global_init
+### global
+
+#### fprop_global_init
 
 该函数完成以下任务：
 
@@ -133,36 +135,38 @@ struct fprop_local_percpu {
 * 分配用于全局计数的`percpu_counter`变量`events`，并初始化计数为`1`
 * 初始化顺序锁`sequence`
 
-
-### fprop_global_destroy
+#### fprop_global_destroy
 
 该函数用于释放`fprop_global_init`分配的`percpu_counter`变量`events`。
 
-### fprop_new_period
+#### fprop_new_period
 
 该函数用于增加周期`period`，并根据`period`来调整`events`的值。同时该函数使用顺序锁`sequence`保证了不会并发修改`period`和`events`的值。
 
 
-### fprop_local_init_single
+### local_single
+
+#### fprop_local_init_single
 
 该函数完成以下工作：
+
 * 初始化`period`为`0`
 * 初始化`events`为`0`
 * 初始化自旋锁`lock`
 
-### fprop_local_destroy_single
+#### fprop_local_destroy_single
 
 该函数为空
 
-
-### \_\_fprop_inc_single
+#### __fprop_inc_single
 
 该函数将某种类型的事件计数和全局计数都递增1，同时也根据需要调整特定事件的计数`events`和周期`period`。当然调整过程需要使用自旋锁进行保护，保证其不会并发的被修改。
 
-### fprop_inc_single
+#### fprop_inc_single
+
 用于在关闭本地中断的情况下，调用函数`__fprop_inc_single`。
 
-### fprop_fraction_single
+#### fprop_fraction_single
 
 该函数用于计算某种特定事件在整体事件中所占的比例，其结果通过函数参数`numerator`和`denominator`返回，分别代表分子和分母。
 
@@ -171,30 +175,37 @@ struct fprop_local_percpu {
 * 同时做了修正，保证分子除以分母的结果永远保证在`0`和`1`之间。
 
 
+### local_percpu
 
+#### fprop_local_init_percpu
 
-### fprop_local_init_percpu
-该函数完成以下工作
+该函数完成以下工作:
+
 * 初始化特定类型事件的`period`为`0`
 * 分配用于计数特定类型事件的`percpu_counter`变量`events`，并初始化为0
 * 初始化自旋锁`lock`
 
-### fprop_local_destroy_percpu
+#### fprop_local_destroy_percpu
 
 释放由`fprop_local_init_percpu`分配的`percpu_counter`变量`events`
 
 
-### \_\_fprop_inc_percpu
+#### __fprop_inc_percpu
 
 该函数将某种类型的事件计数和全局计数都递增`1`，同时也根据需要调整特定事件的计数`events`和周期`period`。当然调整过程需要使用自旋锁进行保护，保证其不会并发的被修改。唯一跟`__fprop_inc_single`不同的是计数使用的是`percpu_counter`。
 
-### fprop_fraction_percpu
+#### fprop_fraction_percpu
 
-跟`fprop_fraction_single`类似，用于计算某种特定事件在整体事件中所占的比例，只不过计数使用的percpu_counter。
+跟`fprop_fraction_single`类似，用于计算某种特定事件在整体事件中所占的比例，只不过计数使用的`percpu_counter`。
 
-### fprop_inc_percpu
+#### fprop_inc_percpu
+
 用于在关闭本地中断的情况下，调用函数 `__fprop_inc_percpu`。
 
-### \_\_fprop_inc_percpu_max
+#### __fprop_inc_percpu_max
 
 该函数跟 `__fprop_inc_percpu`类似，唯一不同的时，可以确保特定事件计数所占的比例不会超过某个指定的比例。
+
+## 内核中的用途
+
+TODO
