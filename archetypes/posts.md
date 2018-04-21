@@ -13,8 +13,8 @@ author: ""
 # P.S. comment can only be closed
 comment: true
 toc: true
-autoCollapseToc: false
-postMetaInFooter: false
+autoCollapseToc: true
+postMetaInFooter: true
 hiddenFromHomePage: false
 # You can also define another contentCopyright. e.g. contentCopyright: "This is another copyright."
 contentCopyright: false
