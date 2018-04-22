@@ -65,7 +65,35 @@ int main(int argc, char **argv)
 
 不管有多少个1都要循环8次，执行效率不高，但是执行该函数的时间每次都是确定的
 
+
 ### 方法2
+
+```c
+#include <stdio.h>
+
+#define __const_hweight8(w)             \
+        ((unsigned char)                 \
+         ((!!((w) & (1ULL << 0))) +     \
+          (!!((w) & (1ULL << 1))) +     \
+          (!!((w) & (1ULL << 2))) +     \
+          (!!((w) & (1ULL << 3))) +     \
+          (!!((w) & (1ULL << 4))) +     \
+          (!!((w) & (1ULL << 5))) +     \
+          (!!((w) & (1ULL << 6))) +     \
+          (!!((w) & (1ULL << 7)))))
+
+unsigned char count(unsigned char byte)
+{
+	return __const_hweight8(byte);;
+}
+
+int main(int argc, char **argv)
+{
+	printf("number of 1 bit in 80 is %d\n", (int)count(80));
+	printf("number of 1 bit in 92 is %d\n", (int)count(92));
+}
+```
+### 方法3
 
 除以`2`向右移位， 逐个统计，但是用到取模和相除，这个很耗资源。
 
@@ -89,7 +117,7 @@ int main(int argc, char **argv)
 	printf("number of 1 bit in 92 is %d\n", (int)count(92));
 }
 ```
-### 方法3
+### 方法4
 
 使用位操作，但是只会去统计1的个数，循环的次数是BYTE中1的个数，无需遍历
 
@@ -117,7 +145,7 @@ int main(int argc, char **argv)
 循环次数与`byte`中`1`的个数有关，但是函数执行时间不确定，不过效率比前面的要提高了很多。
 
 
-### 方法4
+### 方法5
 查表法，这个的效率应该是最高的了——空间换时间。将0~255各个数中所含的1列出来，查表！！
 
 
