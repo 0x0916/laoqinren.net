@@ -39,6 +39,28 @@ sequenceDiagrams:
 <!--more-->
 
 ## admin_reserve_kbytes
+
+`admin_reserve_kbytes`给有`cap_sys_admin`权限的用户保留的内存数量，其默认值为`min(3% of free pages, 8MB)`。
+
+预留内存的目的是在系统异常时，确保`root`用户能够登录系统，支持`root`通过`ps、top`等工具，找到异常的进程并`kill`掉，来恢复系统正常。
+
+一般如何计算需要预留的最小内存大小呢？
+
+```
+sshd or login + bash (or some other shell) + top (or ps, kill, etc.)
+```
+
+其默认值为：
+
+```bash
+root@localhost ~ # cat /proc/sys/vm/admin_reserve_kbytes 
+8192
+```
+
+## user_reserve_kbytes
+
+`user_reserve_kbytes`跟`admin_reserve_kbytes`类似，其默认值为`min(3% of the current process size, 128MB).`
+
 ## block_dump
 ## compact_memory
 ## dirty_background_bytes
@@ -119,7 +141,6 @@ drop_slab 4
 ## percpu_pagelist_fraction
 ## stat_interval
 ## swappiness
-## user_reserve_kbytes
 ## vfs_cache_pressure
 ## zone_reclaim_mode
 
