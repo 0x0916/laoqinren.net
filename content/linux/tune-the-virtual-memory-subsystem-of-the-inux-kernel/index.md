@@ -138,6 +138,14 @@ drop_slab 4
 ## overcommit_ratio
 ## page-cluster
 ## panic_on_oom
+
+`panic_on_oom`用于决定在发生`oom`时，内核是否`panic`, 可以设置的值为`0`、`1`、`2`，默认为`0`
+
+* `1`： 当`cpuset`、`mempolicy`、`memcg`等分配失败引起的`oom`，不进行`panic`
+* `2`：任何情况的的`oom`，都进行`panic`
+
+> 一般情况下`panic_on_oom=2 + kdump`是一个强大的组合，用来发现导致`oom`的具体原因。
+
 ## percpu_pagelist_fraction
 ## stat_interval
 ## swappiness
