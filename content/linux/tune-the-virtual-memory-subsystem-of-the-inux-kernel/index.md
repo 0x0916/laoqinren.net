@@ -110,7 +110,6 @@ drop_pagecache 5
 drop_slab 4
 ```
 
-
 ## extfrag_threshold
 ## hugepages_treat_as_movable
 ## hugetlb_shm_group
@@ -131,8 +130,6 @@ drop_slab 4
 ## nr_overcommit_hugepages
 ## nr_pdflush_threads
 ## numa_zonelist_order
-## oom_dump_tasks
-## oom_kill_allocating_task
 ## overcommit_kbytes
 ## overcommit_memory
 ## overcommit_ratio
@@ -146,8 +143,25 @@ drop_slab 4
 
 > 一般情况下`panic_on_oom=2 + kdump`是一个强大的组合，用来发现导致`oom`的具体原因。
 
+## oom_dump_tasks
+
+`oom_dump_tasks`: 如果启用，在内核执行`oom killer`时，会打印系统内进程的信息，这些信息可以帮助我们找出为什么`oom killer`被执行，找到导致`oom`的进程，以及了解为什么进程会被选中, 默认为`1`
+
+* `非0`: 打印系统内进程的信息
+* `0`: 不打印系统内进程的信息
+
+## oom_kill_allocating_task
+
+`oom_kill_allocating_task`: 决定在`oom`时，`oom killer`杀哪些进程,默认设置为`0`
+
+* `非0`: 它会扫描进程队列，将可能导致内存溢出的进程杀掉，也就是占用内存最大的进程
+* `0`:  oom killer只杀导致oom的那个进程，避免了进程队列的扫描，但是释放的内存大小有限
+
 ## percpu_pagelist_fraction
 ## stat_interval
+
+内存统计信息更新的时间间隔，默认值为`1s`。
+
 ## swappiness
 ## vfs_cache_pressure
 ## zone_reclaim_mode
