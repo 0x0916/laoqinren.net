@@ -2,7 +2,7 @@
 title: "Linux内存模型分析"
 date: 2018-04-25T22:03:05+08:00
 lastmod: 2018-04-25T22:03:05+08:00
-draft: true
+draft: false
 keywords: ["kernel", "linux", "memory", "mem_section", "sparse memory"]
 description: ""
 tags: ["kernel", "linux", "memory"]
