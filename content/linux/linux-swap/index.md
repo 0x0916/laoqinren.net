@@ -1,11 +1,11 @@
 ---
 title: "Linux交换空间"
-date: 2018-05-06T21:07:38+08:00
-lastmod: 2018-05-06T21:07:38+08:00
-draft: true
-keywords: []
+date: 2018-05-04T21:07:38+08:00
+lastmod: 2018-05-04T21:07:38+08:00
+draft: false
+keywords: ["linux", "swap"]
 description: ""
-tags: ["kernel", "linux"]
+tags: ["kernel", "linux", "swap"]
 categories: ["linux"]
 author: ""
 
@@ -13,7 +13,7 @@ author: ""
 # P.S. comment can only be closed
 comment: true
 toc: true
-autoCollapseToc: false
+autoCollapseToc: true
 postMetaInFooter: true
 hiddenFromHomePage: false
 # You can also define another contentCopyright. e.g. contentCopyright: "This is another copyright."
