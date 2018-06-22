@@ -249,6 +249,26 @@ MODULE_LICENSE("GPL");
 [  944.056965] node.val = 5
 ```
 
+## 其他
+
+内核中用`hlist`来实现 `hash table`，在内核上一般有如下的`hash table`：
+
+```bash
+# dmesg | grep "hash table entries" 
+[    0.000000] PV qspinlock hash table entries: 256 (order: 0, 4096 bytes)
+[    0.000000] PID hash table entries: 4096 (order: 3, 32768 bytes)
+[    0.294869] Dentry cache hash table entries: 524288 (order: 10, 4194304 bytes)
+[    0.296328] Inode-cache hash table entries: 262144 (order: 9, 2097152 bytes)
+[    0.296589] Mount-cache hash table entries: 8192 (order: 4, 65536 bytes)
+[    0.296595] Mountpoint-cache hash table entries: 8192 (order: 4, 65536 bytes)
+[    0.614525] TCP established hash table entries: 32768 (order: 6, 262144 bytes)
+[    0.614769] TCP bind hash table entries: 32768 (order: 9, 2621440 bytes)
+[    0.616607] UDP hash table entries: 2048 (order: 6, 393216 bytes)
+[    0.616794] UDP-Lite hash table entries: 2048 (order: 6, 393216 bytes)
+[    1.053747] futex hash table entries: 1024 (order: 5, 131072 bytes)
+[    1.079062] Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+```
+
 ## 参考文档
 
 * https://vinoit.me/2016/09/01/linux-kernel-hlist_head-and-hlist_node/
