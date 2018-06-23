@@ -1,5 +1,5 @@
 ---
-title: "内核基础设施————list_head结构解析"
+title: "内核基础设施——list_head结构解析"
 date: 2018-06-23T17:38:10+08:00
 lastmod: 2018-06-23T17:38:10+08:00
 draft: false
