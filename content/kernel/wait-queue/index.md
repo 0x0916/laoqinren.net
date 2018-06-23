@@ -5,7 +5,7 @@ lastmod: 2018-05-07T18:27:48+08:00
 draft: true
 keywords: ["等待队列"]
 description: ""
-tags: ["kernel", "linux", "wait queue"]
+tags: ["kernel", "linux", "wait queue", "内核基础设施"]
 categories: ["kernel"]
 author: ""
 
