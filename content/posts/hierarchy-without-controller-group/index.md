@@ -72,7 +72,7 @@ cgroup.clone_children  cgroup.event_control  cgroup.procs  cgroup.sane_behavior 
 
 ### 创建和删除cgroup
 
-挂载好cgroup树之后，就可以在里面新建CG肉片了，其实新建cgroup很简单，就是创建目录就可以了。
+挂载好cgroup树之后，就可以在里面新建cgroup了，其实新建cgroup很简单，就是创建目录就可以了。
 
 ```bash
 ~/cgroup  # # 创建子cgroup很简单，新建一个目录就可以了
