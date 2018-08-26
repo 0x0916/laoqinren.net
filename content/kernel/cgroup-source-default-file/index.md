@@ -1,7 +1,7 @@
 ---
-title: "Cgroup 中默认文件的内核实现分析"
-date: 2018-08-15T10:09:56+08:00
-lastmod: 2018-08-15T10:09:56+08:00
+title: "cgroup源码分析6——cgroup 中默认控制文件的内核实现分析"
+date: 2018-08-26T10:09:56+08:00
+lastmod: 2018-08-26T10:09:56+08:00
 draft: false 
 keywords: []
 description: ""
