@@ -2,7 +2,7 @@
 title: "传递文件描述符"
 date: 2018-09-16T18:06:34+08:00
 lastmod: 2018-09-16T18:06:34+08:00
-draft: true
+draft: false 
 keywords: []
 description: ""
 tags: ["kernel", "linux", "socket"]
