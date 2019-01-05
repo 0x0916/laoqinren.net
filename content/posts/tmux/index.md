@@ -13,7 +13,7 @@ author: ""
 # comment: true
 # toc: false
 autoCollapseToc: false
-postMetaInFooter: false
+postMetaInFooter: true
 # hiddenFromHomePage: true
 # You can also define another contentCopyright. e.g. contentCopyright: "This is another copyright."
 contentCopyright: false
