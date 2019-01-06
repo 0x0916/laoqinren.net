@@ -34,8 +34,9 @@ sequenceDiagrams:
 
 在`Linux`系统中，有很多内存管理的配置参数，本文就详细分析`min_free_kbytes`参数。
 
-
 <!--more-->
+
+![](./pic.jpg)
 
 ### 系统环境介绍
 
