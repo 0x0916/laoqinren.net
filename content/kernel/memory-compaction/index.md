@@ -20,7 +20,7 @@ hiddenFromHomePage: false
 contentCopyright: false
 reward: false
 mathjax: true 
-mathjaxEnableSingleDollar: false
+mathjaxEnableSingleDollar: false 
 
 flowchartDiagrams:
   enable: false
@@ -181,9 +181,10 @@ static void unusable_show_print(struct seq_file *m,
 ```
 
 计算公式为：
-```mathjax!
-$$unusable\_index = \frac{ free\_pages - free\_blocks\_suitable << order}{free_pages}$$
-```
+
+$$
+unusable\ index = \frac{ free\ pages - free\ blocks\ suitable << order}{free\ pages}
+$$
 
 
 #### 内存分配失败原因`extfrag_index`
@@ -270,9 +271,8 @@ static void extfrag_show_print(struct seq_file *m,
 ```
 
 计算公式为：
-```mathjax!
-$$extfrag\_index = 1000 - \frac{ \frac{free\_pages * 1000}{requested} + 1000 }{free\_blocks\_total}$$
-```
+
+$$ extfrag\ index = 1000 - \frac{ \frac{free\ pages * 1000}{requested} + 1000 }{free\ blocks\ total} $$
 
 其中也遇到了上面提到的`fill_contig_page_info`函数，其用来统计内存信息，并填充数据结构`struct contig_page_info info`。
 
@@ -284,45 +284,45 @@ $$extfrag\_index = 1000 - \frac{ \frac{free\_pages * 1000}{requested} + 1000 }{f
 `compaction_suitable()`函数主要根据当前`zone`的水位来判断是否需要内存规整:
 
 ```c?linenums
-/*                                                                                                                                                                 
- * compaction_suitable: Is this suitable to run compaction on this zone now?                                                                                       
- * Returns                                                                                                                                                         
- *   COMPACT_SKIPPED  - If there are too few free pages for compaction                                                                                             
- *   COMPACT_PARTIAL  - If the allocation would succeed without compaction                                                                                         
- *   COMPACT_CONTINUE - If compaction should run now                                                                                                               
- */                                                                                                                                                                
-unsigned long compaction_suitable(struct zone *zone, int order)                                                                                                    
-{                                                                                                                                                                  
-        int fragindex;                                            
-        unsigned long watermark; 
-                                                                                                                                                                   
-        /*                                                                                                                                                         
-         * order == -1 is expected when compacting via                                                                                                             
-         * /proc/sys/vm/compact_memory                                                                                                                             
-         */ // 当order = -1 时，无条件进行内存规整，一般发生是由于手动触发内存规整                                                                                 
-        if (order == -1)                                                                                                                                           
-                return COMPACT_CONTINUE;                                                                                                                           
-                                                                                                                                                                   
-        /*                                                                                                                                                         
-         * Watermarks for order-0 must be met for compaction. Note the 2UL.                                                                                        
-         * This is because during migration, copies of pages need to be                                                                                            
-         * allocated and for a short time, the footprint is higher                                                                                                 
-         */                                                                                                                                                        
-        watermark = low_wmark_pages(zone) + (2UL << order);                                                                                                        
-        if (!zone_watermark_ok(zone, 0, watermark, 0, 0))                                                                                                          
-                return COMPACT_SKIPPED; //空闲内存太少了，没有办法执行内存规整                                                                                     
-                                                                                                                                                                   
-        /*                                                                                                                                                         
-         * fragmentation index determines if allocation failures are due to                                                                                        
-         * low memory or external fragmentation                                                                                                                    
-         *                                                                                                                                                         
-         * index of -1000 implies allocations might succeed depending on                                                                                           
-         * watermarks                                                                                                                                              
-         * index towards 0 implies failure is due to lack of memory                                                                                                
-         * index towards 1000 implies failure is due to fragmentation                                                                                              
-         *                                                                                                                                                         
-         * Only compact if a failure would be due to fragmentation.                                                                                                
-         */                                                                                                                                                        
+/*
+ * compaction_suitable: Is this suitable to run compaction on this zone now?
+ * Returns
+ *   COMPACT_SKIPPED  - If there are too few free pages for compaction
+ *   COMPACT_PARTIAL  - If the allocation would succeed without compaction
+ *   COMPACT_CONTINUE - If compaction should run now
+ */
+unsigned long compaction_suitable(struct zone *zone, int order)
+{
+        int fragindex;
+        unsigned long watermark;
+
+        /*
+         * order == -1 is expected when compacting via
+         * /proc/sys/vm/compact_memory
+         */ // 当order = -1 时，无条件进行内存规整，一般发生是由于手动触发内存规整
+        if (order == -1)
+                return COMPACT_CONTINUE;
+
+        /*
+         * Watermarks for order-0 must be met for compaction. Note the 2UL.
+         * This is because during migration, copies of pages need to be 
+         * allocated and for a short time, the footprint is higher
+         */
+        watermark = low_wmark_pages(zone) + (2UL << order);
+        if (!zone_watermark_ok(zone, 0, watermark, 0, 0))
+                return COMPACT_SKIPPED; //空闲内存太少了，没有办法执行内存规整
+
+        /*
+         * fragmentation index determines if allocation failures are due to
+         * low memory or external fragmentation
+         *
+         * index of -1000 implies allocations might succeed depending on
+         * watermarks
+         * index towards 0 implies failure is due to lack of memory
+         * index towards 1000 implies failure is due to fragmentation 
+         *
+         * Only compact if a failure would be due to fragmentation.
+         */
         fragindex = fragmentation_index(zone, order); //计算碎片化指数，用来决定是否需要进行内存规整
         if (fragindex >= 0 && fragindex <= sysctl_extfrag_threshold)
                 return COMPACT_SKIPPED;
@@ -376,4 +376,3 @@ compact_success 285
 * `compact_success` 表示内存规整成功的次数
 
 ### 参考文章
-
