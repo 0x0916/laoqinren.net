@@ -2,7 +2,7 @@
 title: "内核中内存信息的展示"
 date: 2019-01-13T10:28:37+08:00
 lastmod: 2019-01-13T10:28:37+08:00
-draft: true
+draft: false 
 keywords: ["zoneinfo", "buddyinfo", "vmstat", "pagetypeinfo"]
 description: ""
 tags: ["kernel", "linux"]
