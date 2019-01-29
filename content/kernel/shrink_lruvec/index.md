@@ -2,7 +2,7 @@
 title: "内存管理：shrink_lruvec分析"
 date: 2019-01-29T07:28:18+08:00
 lastmod: 2019-01-29T07:28:18+08:00
-draft: true
+draft: false 
 keywords: ["kernel", "LRU", "shrink_lruvec"]
 description: ""
 tags: ["kernel", "linux"]
