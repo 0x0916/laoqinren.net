@@ -2,7 +2,7 @@
 title: "制作自动化安装的CENTOS7 ISO"
 date: 2019-02-10T20:20:18+08:00
 lastmod: 2019-02-10T20:20:18+08:00
-draft: true
+draft: false 
 keywords: []
 description: ""
 tags: ["kernel", "linux"]
