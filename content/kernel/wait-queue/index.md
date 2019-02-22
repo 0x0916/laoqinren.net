@@ -2,7 +2,7 @@
 title: "内核基础设施——wait queue"
 date: 2018-05-07T18:27:48+08:00
 lastmod: 2019-02-21T18:27:48+08:00
-draft: true
+draft: false 
 keywords: ["等待队列"]
 description: ""
 tags: ["kernel", "linux", "wait queue", "内核基础设施"]
