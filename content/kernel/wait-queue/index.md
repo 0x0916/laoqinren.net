@@ -1,7 +1,7 @@
 ---
 title: "内核基础设施——wait queue"
 date: 2018-05-07T18:27:48+08:00
-lastmod: 2018-05-07T18:27:48+08:00
+lastmod: 2019-02-21T18:27:48+08:00
 draft: true
 keywords: ["等待队列"]
 description: ""
@@ -32,7 +32,7 @@ sequenceDiagrams:
 
 ---
 
-## 介绍：什么是等待队列？
+## 什么是等待队列？
 
 在软件开发中任务经常由于某种条件没有得到满足而不得不进入睡眠状态，然后等待条件得到满足的时候再继续运行，进入运行状态。这种需求需要等待队列机制的支持。`Linux`中提供了等待队列的机制，该机制在内核中应用很广泛。
  
@@ -40,9 +40,14 @@ sequenceDiagrams:
  
 在`Linux`内核中使用等待队列的过程很简单，首先定义一个`wait_queue_head`，然后如果一个`task`想等待某种事件，那么调用`wait_event（等待队列，事件）`就可以了。
 
-> 本文中使用的内核版本为：[3.10.0-693.21.1](http://vault.centos.org/7.4.1708/updates/Source/SPackages/kernel-3.10.0-693.21.1.el7.src.rpm)
-
 <!--more-->
+
+![](./pic.jpg "")
+
+## 系统环境
+
+* 发行版：`centos7.5`
+* 内核版本：[3.10.0-862.14.4.el7.x86_64](http://vault.centos.org/7.5.1804/updates/Source/SPackages/kernel-3.10.0-862.14.4.el7.src.rpm)
 
 ## 初始化等待队列
 
@@ -63,25 +68,25 @@ init_waitqueue_head(&q);
 
 |API接口|说明|
 |---|---|
-|wait_event(wq, condition)|将当前进程加入等待队列wq中，并设置进程状态为D，然后睡眠直到condition为true|
-|wait_event_timeout(wq, condition, timeout)|将当前进程加入等待队列wq中，并设置进程状态为D，然后睡眠直到condition为true,即使condition不为true，如果超时后，也结束睡眠状态|
-|wait_event_cmd(wq, condition, cmd1, cmd2)|跟wait_event类似，只不过在睡眠前执行cmd1，睡眠后执行cmd2|
-|wait_event_interruptible(wq, condition)|跟wait_event类似，只不过设置进程的状态为S|
-|wait_event_interruptible_timeout(wq, condition, timeout)|跟wait_event_timeout 类似，只不过设置进程的状态为S|
-|wait_event_killable(wq, condition)|跟wait_event类似,只不过睡眠后，可以接受信号|
+|wait_event(wq, condition)|将当前进程加入等待队列`wq`中，并设置进程状态为`D`，然后睡眠直到`condition`为`true`|
+|wait_event_timeout(wq, condition, timeout)|将当前进程加入等待队列`wq`中，并设置进程状态为`D`，然后睡眠直到`condition`为`true`,即使`condition`不为`true`，如果超时后，也结束睡眠状态|
+|wait_event_cmd(wq, condition, cmd1, cmd2)|跟`wait_event`类似，只不过在睡眠前执行`cmd1`，睡眠后执行`cmd2`|
+|wait_event_interruptible(wq, condition)|跟`wait_event`类似，只不过设置进程的状态为`S`|
+|wait_event_interruptible_timeout(wq, condition, timeout)|跟`wait_event_timeout` 类似，只不过设置进程的状态为`S`|
+|wait_event_killable(wq, condition)|跟`wait_event`类似,只不过睡眠后，可以接受信号|
 
 ## 唤醒等待队列中的进程
 
 |API接口|说明|
 |---|---|
-|wake_up|唤醒等待队列上的一个进程，考虑TASK_INTERRUPTIBLE 和TASK_UNINTERRUPTIBLE|
-|wake_up_nr|唤醒等待队列上的nr个进程，考虑TASK_INTERRUPTIBLE 和TASK_UNINTERRUPTIBLE|
-|wake_up_all|唤醒等待队列上的所有进程，考虑TASK_INTERRUPTIBLE 和TASK_UNINTERRUPTIBLE|
-|wake_up_locked|跟wake_up类似，只是调用时已经确保加锁了|
-|wake_up_all_locked|跟wake_up_all类似，只是调用时已经确保加锁了|
-|wake_up_interruptible|唤醒等待队列上的一个进程，只考虑TASK_INTERRUPTIBLE|
-|wake_up_interruptible_nr|唤醒等待队列上的nr个进程，只考虑TASK_INTERRUPTIBLE|
-|wake_up_interruptible_all|唤醒等待队列上的所有进程，只考虑TASK_INTERRUPTIBLE|
+|wake_up|唤醒等待队列上的一个进程，考虑`TASK_INTERRUPTIBLE` 和`TASK_UNINTERRUPTIBLE`|
+|wake_up_nr|唤醒等待队列上的`nr`个进程，考虑`TASK_INTERRUPTIBLE` 和`TASK_UNINTERRUPTIBLE`|
+|wake_up_all|唤醒等待队列上的所有进程，考虑`TASK_INTERRUPTIBLE` 和`TASK_UNINTERRUPTIBLE`|
+|wake_up_locked|跟`wake_up`类似，只是调用时已经确保加锁了|
+|wake_up_all_locked|跟`wake_up_all`类似，只是调用时已经确保加锁了|
+|wake_up_interruptible|唤醒等待队列上的一个进程，只考虑`TASK_INTERRUPTIBLE`|
+|wake_up_interruptible_nr|唤醒等待队列上的`nr`个进程，只考虑`TASK_INTERRUPTIBLE`|
+|wake_up_interruptible_all|唤醒等待队列上的所有进程，只考虑`TASK_INTERRUPTIBLE`|
 |wake_up_interruptible_sync||
 
 
@@ -89,9 +94,12 @@ init_waitqueue_head(&q);
 
 首先，我解释一下示例程序。
 
-在示例程序中，有两个地方唤醒等待队列中的进程，一处是在`read `函数（`cat /proc/test_wait_queue`）中，另一处在模块退出函数中。
+在示例程序中，有两个地方唤醒等待队列中的进程:
 
-在模块初始化函数中，我们创建了一个内核线程（`MyWaitThread`）,该内核线程总是等待`wait_queue_flag`不为0，它一直睡眠，直到有人唤醒它。当唤醒后，它检查wait_queue_flag的值，如果是1，说明唤醒来自read函数，此时它打印read count 信息，并继续睡眠，如果wait_queue_flag的值是2，说明唤醒来自模块退出函数，此时给内核线程退出。
+* 一处是在`read `函数（`cat /proc/test_wait_queue`）中
+* 另一处在模块退出函数中。
+
+在模块初始化函数中，我们创建了一个内核线程（`MyWaitThread`）,该内核线程总是等待`wait_queue_flag`不为`0`，它一直睡眠，直到有人唤醒它。当唤醒后，它检查`wait_queue_flag`的值，如果是`1`，说明唤醒来自`read`函数，此时它打印`read count` 信息，并继续睡眠，如果`wait_queue_flag`的值是`2`，说明唤醒来自模块退出函数，此时给内核线程退出。
 
 代码如下：
 
@@ -242,32 +250,29 @@ read_count = 1
 
 等待队列应用广泛，但是内核实现却十分简单。其涉及到两个比较重要的数据结构：
 
-### wait_queue_head
+### wait_queue_head_t
 
 该结构描述了等待队列的链头，其包含一个链表和一个原子锁，结构定义如下：
 
 ```c
-struct wait_queue_head {
-        spinlock_t              lock;
-        struct list_head        head;
+struct __wait_queue_head {
+        spinlock_t lock;     
+        struct list_head task_list; 
 };
-typedef struct wait_queue_head wait_queue_head_t;
+typedef struct __wait_queue_head wait_queue_head_t;
 ```
-###  wait_queue_entry
+### wait_queue_t
 
-该结构是对一个等待任务的抽象。每个等待任务都会抽象成一个`wait_queue_entry`，并且挂载到`wait_queue_head`上。该结构定义如下：
+该结构是对一个等待任务的抽象。每个等待任务都会抽象成一个`wait_queue_t`，并且挂载到`wait_queue_head_t`上。该结构定义如下：
 
 ```c
-typedef struct wait_queue_entry wait_queue_entry_t;
+typedef struct __wait_queue wait_queue_t;
 
-/*
- * A single wait-queue entry structure:
- */
-struct wait_queue_entry {
-        unsigned int            flags;
-        void                    *private;
-        wait_queue_func_t       func;
-        struct list_head        entry;
+struct __wait_queue {
+        unsigned int flags;
+        void *private;
+        wait_queue_func_t func;
+        struct list_head task_list;
 };
 ```
 
@@ -279,11 +284,120 @@ struct wait_queue_entry {
 ![enter description here][1]
 
 
+## API细节
+
+上节介绍的`API`可以直接使用，但是内核系统比较复杂，有些情况不是简单的等待某个变量条件为真，所以，当我们了解了`wait_event`和`wake_up`的细节，我们编写起内核代码才能游刃有余。
+
+### wait_event细节
+```c
+#define __wait_event(wq, condition)                                     \
+do {                                                                    \
+        DEFINE_WAIT(__wait);                                            \
+                                                                        \
+        for (;;) {                                                      \
+                prepare_to_wait(&wq, &__wait, TASK_UNINTERRUPTIBLE);    \
+                if (condition)                                          \
+                        break;                                          \
+                schedule();                                             \
+        }                                                               \
+        finish_wait(&wq, &__wait);                                      \
+} while (0)
+
+/**
+ * wait_event - sleep until a condition gets true
+ * @wq: the waitqueue to wait on
+ * @condition: a C expression for the event to wait for
+ *
+ * The process is put to sleep (TASK_UNINTERRUPTIBLE) until the
+ * @condition evaluates to true. The @condition is checked each time
+ * the waitqueue @wq is woken up.
+ *
+ * wake_up() has to be called after changing any variable that could
+ * change the result of the wait condition.
+ */
+#define wait_event(wq, condition)                                       \
+do {                                                                    \
+        if (condition)                                                  \
+                break;                                                  \
+        __wait_event(wq, condition);                                    \
+} while (0)
+
+```
+
+* 第`28`行代码说明如果条件为真，则直接返回，否则调用`__wait_event`
+* 第`3`定义了一个`wait_queue_t`成员
+* 第`6`到`10`行代码将当前进程添加到等待队列中，此时如果条件为真，则直接调用`finish_wait`退出等待，否则，调用`schedule()`进行睡眠，等待`wake_up`唤醒它
+
+### wake_up细节
+
+```c
+/*
+ * The core wakeup function. Non-exclusive wakeups (nr_exclusive == 0) just
+ * wake everything up. If it's an exclusive wakeup (nr_exclusive == small +ve
+ * number) then we wake all the non-exclusive tasks and one exclusive task.
+ *
+ * There are circumstances in which we can try to wake a task which has already
+ * started to run but is not in state TASK_RUNNING. try_to_wake_up() returns
+ * zero in this (rare) case, and we handle it by continuing to scan the queue.
+ */
+static void __wake_up_common(wait_queue_head_t *q, unsigned int mode,
+                        int nr_exclusive, int wake_flags, void *key)
+{
+        wait_queue_t *curr, *next;
+
+        list_for_each_entry_safe(curr, next, &q->task_list, task_list) {
+                unsigned flags = curr->flags;
+
+                if (curr->func(curr, mode, wake_flags, key) &&
+                                (flags & WQ_FLAG_EXCLUSIVE) && !--nr_exclusive)
+                        break;
+        }
+}
+
+/**
+ * __wake_up - wake up threads blocked on a waitqueue.
+ * @q: the waitqueue
+ * @mode: which threads
+ * @nr_exclusive: how many wake-one or wake-many threads to wake up
+ * @key: is directly passed to the wakeup function
+ *
+ * It may be assumed that this function implies a write memory barrier before
+ * changing the task state if and only if any tasks are woken up.
+ */
+void __wake_up(wait_queue_head_t *q, unsigned int mode,
+                        int nr_exclusive, void *key)
+{
+        unsigned long flags;
+
+        spin_lock_irqsave(&q->lock, flags);
+        __wake_up_common(q, mode, nr_exclusive, 0, key);
+        spin_unlock_irqrestore(&q->lock, flags);
+}
+EXPORT_SYMBOL(__wake_up); 
+
+#define wake_up(x)                      __wake_up(x, TASK_NORMAL, 1, NULL)
+```
+
+* 最主要的函数为`__wake_up_common`，其遍历等待队列的`task_list`链表，然后调用等待实体的`func`函数。
+* 第`19`行通过`flag`和`nr_exclusive`来决定是唤醒`1`个等待的进程还是全部等待的进程。
+
+
+### 总结
+
+当我们理解掌握了上述`API`的实现细节，我们就可以游刃有余的阅读和编写有关等待队列的相关内核代码。举个例子：内核的内存管理系统中，在内存回收这块，有个专门的`kswapd`内核线程进行内存回收：
+
+* 在内存充足时，其进行睡眠等待内存不足时被唤醒
+* 在内存不足时，有很多内核执行路径上回唤醒`kswapd`内核线程
+
+由于内存管理比较复杂，在`kswapd`等待睡眠时并没有直接使用本文中讲述的`API`，而是使用了更底层的函数方法，比如：
+
+* `prepare_to_wait`
+* `schedule`
+* `finish_wait`
+
 ## 参考文档
 
 https://embetronicx.com/tutorials/linux/device-drivers/waitqueue-in-linux-device-driver-tutorial/
-
-
 
   [1]: ./wait_queue.png "wait_queue"
 
