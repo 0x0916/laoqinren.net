@@ -132,7 +132,51 @@ drop_slab 4
 ## numa_zonelist_order
 ## overcommit_kbytes
 ## overcommit_memory
+
+在内存申请时，`overcommit_memory`用于设置内核判断是否允许内存分配的策略。可以设置的值为`0`、`1`、`2`。
+
+* `0`: 默认值，表示内核将检查是否有足够的可用内存供应用进程使用；如果有足够的可用内存，内存申请允许；否则，内存申请失败，并把错误返回给应用进程。
+* `1`: 表示内核总是允许分配，而不管当前的内存状态如何。
+* `2`: 表示内核允许分配超过所有物理内存和交换空间总和的内存。
+
+
+当值为`0`时，计算系统剩余的内存的公式如下：
+```
+free = global_page_state(NR_FREE_PAGES)
+	+ global_page_state(NR_FILE_PAGES)
+	+ global_page_state(NR_SLAB_RECLAIMABLE)
+	+ get_nr_swap_pages()
+	- global_page_state(NR_SHMEM)
+	- totalreserve_pages
+	- sysctl_admin_reserve_kbytes
+```
+
+当值为`2`时，判断的逻辑如下：
+
+* 先计算`vm_commit_limit`的值，计算的公式如下：
+
+```
+vm_commit_limit = ((总物理内存大小-hugetlb_total_pages()) * sysctl_overcommit_ratio/100 ) + swap大小
+```
+
+`sysctl_overcommit_ratio`的默认值为`50`。
+
+* 然后判断`vm_committed_as`和`vm_commit_limit`的大小, 如果`vm_commit_limit`大于`vm_committed_as`则允许内存分配，否则不允许内存分配。
+
+* `vm_committed_as`和`vm_commit_limit`的大小可以通过如下命令获取到：
+
+```bash
+# grep -i commit /proc/meminfo
+CommitLimit:     5884772 kB
+Committed_AS:    2768564 kB
+```
+`CommitLimit`为当前系统可以申请的总内存，`Committed_AS`为当前已经申请的内存，记住是**申请**。
+
+
 ## overcommit_ratio
+
+当`overcommit_memory`为`2`时, 总的申请内存大小不允许超过`(总物理内存大小*overcommit_ratio/100) + swap大小`，具体情参考`overcommit_memory`的说明。
+
 ## page-cluster
 ## panic_on_oom
 
@@ -155,7 +199,7 @@ drop_slab 4
 `oom_kill_allocating_task`: 决定在`oom`时，`oom killer`杀哪些进程,默认设置为`0`
 
 * `非0`: 它会扫描进程队列，将可能导致内存溢出的进程杀掉，也就是占用内存最大的进程
-* `0`:  oom killer只杀导致oom的那个进程，避免了进程队列的扫描，但是释放的内存大小有限
+* `0`:  `oom killer`只杀导致`oom`的那个进程，避免了进程队列的扫描，但是释放的内存大小有限
 
 ## percpu_pagelist_fraction
 ## stat_interval
