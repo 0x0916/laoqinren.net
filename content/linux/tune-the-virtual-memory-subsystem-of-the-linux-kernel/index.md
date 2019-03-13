@@ -130,7 +130,7 @@ drop_slab 4
 ## nr_overcommit_hugepages
 ## nr_pdflush_threads
 ## numa_zonelist_order
-## overcommit_kbytes
+
 ## overcommit_memory
 
 在内存申请时，`overcommit_memory`用于设置内核判断是否允许内存分配的策略。可以设置的值为`0`、`1`、`2`。
@@ -150,6 +150,7 @@ free = global_page_state(NR_FREE_PAGES)
 	- totalreserve_pages
 	- sysctl_admin_reserve_kbytes
 ```
+如果剩余可用内存大小(`free`)大于此次申请的内存的大小(`pages`)，则允许申请，否则，返回错误。
 
 当值为`2`时，判断的逻辑如下：
 
@@ -172,12 +173,28 @@ Committed_AS:    2768564 kB
 ```
 `CommitLimit`为当前系统可以申请的总内存，`Committed_AS`为当前已经申请的内存，记住是**申请**。
 
+### 总结一下
+
+* 当`overcommit_memory`设置为`0`或者`1`时，都有可能使系统的内存超载，但也可以增加大量使用内存任务的性能。
+* 当`overcommit_memory`设置为`2`时，会减少内存超载的风险，一般建议当`swap`大于物理内存大小时才设置为`2`。
+
+> `overcommit_memory`设置为`2`时，有可能系统上`free`还有空间，但是内存申请失败，因为此时`Commited_AS`可能已经很大了。导致`CommitLimit - Commited_AS`特别小。
+
+* `overcommit_memory` 默认设置为`0`，为了提供内存程序的效率，可以将其设置为`1`。设置成`1`相比`0`时，内存超载的风险更大。
 
 ## overcommit_ratio
 
 当`overcommit_memory`为`2`时, 总的申请内存大小不允许超过`(总物理内存大小*overcommit_ratio/100) + swap大小`，具体情参考`overcommit_memory`的说明。
 
+
+## overcommit_kbytes
+
+当`overcommit_memory`为`2`时, 总的申请内存大小不允许超过`overcommit_kbytes + swap大小`，具体情参考`overcommit_memory`的说明。
+
+> `overcommit_kbytes`和`overcommit_ratio`统一时刻只有一个会生效，设置其中一个的话，另外一个自动会被设置成`0`。
+
 ## page-cluster
+
 ## panic_on_oom
 
 `panic_on_oom`用于决定在发生`oom`时，内核是否`panic`, 可以设置的值为`0`、`1`、`2`，默认为`0`
