@@ -323,3 +323,24 @@ static struct cpuacct root_cpuacct = {
 
 该接口根据`task_nice(p)`是否为真，更新`CPUTIME_NICE and CPUTIME_GUEST_NICE`或者`CPUTIME_USER and CPUTIME_GUEST`, 只更新了`root cpuacct`，即`guest`时间不是`cgroup aware`的。
 
+
+## 其它相关问题
+
+### root cpuacct的数据来源？
+
+* `root cpuacct cgroup`中`usage`来源于变量`root_cpuacct_cpuusage`，在`cpuacct_charge`中会更新它的值。
+* `root cpuacct cgroup`中`cpustat`来源于变量`kernel_cpustat`,`cpuacct_account_field`并不会更新它，而是有系统上其它部分去更新。
+
+### /proc/stat中cpu相关统计信息来自哪里？
+
+* `/proc/stat`中cpu相关统计数据来自于变量`kernel_cpustat`,这个跟`root cpuacct cgroup`的数据来源是一样的。
+
+### docker如何计算容器的`cpu`利用率？
+
+`docker`容器的的cpu利用率计算公司如下：
+```
+	(cpuuasge的delta值/墙上时间delta) * 100%
+```
+
+* `cpuuasge`的`delta`值： 通过两次读取`cpuacct.useage`得到
+* 墙上时间`delta`： 通过两地读取`/proc/stat`的第一行得到，由于该行的值为**墙上时间*cpu核数**，所以该值应该再除以`cpu`核数。
