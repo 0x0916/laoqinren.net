@@ -45,6 +45,8 @@ sequenceDiagrams:
 
 <!--more-->
 
+![](./pic.jpg)
+
 ## 统计文件示例
 
 ### usage*
