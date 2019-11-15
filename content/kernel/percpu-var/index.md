@@ -2,7 +2,7 @@
 title: "内核基础设施——per cpu变量"
 date: 2019-11-14T15:55:10+08:00
 lastmod: 2019-11-14T15:55:10+08:00
-draft: true
+draft: false 
 keywords: ["内核基础设施", "per cpu"]
 description: ""
 tags: ["kernel", "linux"]
