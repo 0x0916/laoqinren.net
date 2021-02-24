@@ -210,6 +210,23 @@ gs             0x0	0
 
 其中高字节是显示属性`0x0a`，低字节依次是`0x61`、`0x62`、`0x63`，对应字符`a`、`b`、`c`。
 
+### 方便的调试技巧
+
+目前，我们已经使用多次`qemu`结合`GDB`进行调试程序，为了避免每次调试都要重复输入很多指令，我们可以创建一个文件`.gdbinit`:
+```
+# $  echo "set auto-load safe-path /" >> ~/.gdbinit
+target remote localhost:1234
+set architecture i8086
+display/i $cs*16+$pc
+b *0x7c00
+c
+```
+
+注意：文件的第一行是注释，在执行之前，需要执行一下该注释里的命令：
+```
+# echo "set auto-load safe-path /" >> ~/.gdbinit
+```
+
 ### 参考文章
 
 * [汇编语言一发入魂-0x04-堆栈](https://kviccn.github.io/posts/2020/03/%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80%E4%B8%80%E5%8F%91%E5%85%A5%E9%AD%82-0x04-%E5%A0%86%E6%A0%88/)
