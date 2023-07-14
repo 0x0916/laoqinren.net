@@ -2,7 +2,7 @@
 title: "Linux时间子系统之低精度定时器(Timer)"
 date: 2020-08-29T09:34:48+08:00
 lastmod: 2020-08-29T09:34:48+08:00
-draft: true
+draft: false
 keywords: []
 description: ""
 tags: ["kernel", "linux"]
@@ -77,10 +77,9 @@ struct timer_list {
 #define TIMER_ARRAYSHIFT	22
 #define TIMER_ARRAYMASK		0xFFC00000
 ```
-可以看到，其实并不是标志位那么简单。其最高10位记录了定时器放置到桶的编号，后面会提到一共最多只有**576**个桶，所以**10位**足够了。而最低的**18位**指示了该定时器绑定到了哪个CPU上，注意是一个数值，而不是位图。夹在中间的一些位到真的是一些标志位。 如下图所示：
-<center>
+可以看到，`flags`其实并不是标志位那么简单。其最高`10`位记录了定时器放置到桶的编号，后面会提到一共最多只有**576**个桶，所以**10位**足够了。而最低的**18位**指示了该定时器绑定到了哪个`CPU`上，注意是一个数值，而不是位图。夹在中间的一些位到真的是一些标志位。 如下图所示：
+
 ![](./timer_flags.png)
-</center>
 
 * `TIMER_MIGRATING`表示定时器正在从一个CPU迁移到另外一个CPU。
 * `TIMER_DEFERRABLE`表示该定时器是可延迟的。
@@ -89,7 +88,7 @@ struct timer_list {
 
 ### 定时器基本数据结构timer_base
 
-系统中可能同时存在成千上万个定时器，如果处理不好效率会非常低下。Linux目前会将定时器按照绑定的CPU和种类（普通定时器还是可延迟定时器两种）进行区分，由`timer_base`结构体组织起来：
+系统中可能同时存在成千上万个定时器，如果处理不好效率会非常低下。`Linux`目前会将定时器按照绑定的`CPU`和`种类`（普通定时器还是可延迟定时器两种）进行区分，由`timer_base`结构体组织起来：
 
 ```c
 struct timer_base {
@@ -105,22 +104,22 @@ struct timer_base {
 } ____cacheline_aligned;
 ```
 
-* `lock`：保护该timer_base结构体的自旋锁，这个自旋锁还同时保护包含在vectors链表数组中的所有定时器。
-* `running_timer`：该字段指向当前CPU正在处理的定时器所对应的timer_list结构。
-* `clk`：当前定时器所经过的 jiffies，用来判断包含的定时器是否已经到期或超时。
-* `next_expiry`：该字段指向该CPU下一个即将到期的定时器。最早 (距离超时最近的 timer) 的超时时间
-* `cpu`：所属的CPU号。
-* `is_idle`：指示是否处于空闲模式下，在NO_HZ模式下会用到。
-* `must_forward_clk`：指示是否需要更新当前clk的值，在NO_HZ模式下会用到。
-* `pending_map`：一个比特位图，时间轮中有几个桶就有几个比特位。如果某个桶内有定时器存在，那么就将相应的比特位置1。
+* `lock`：保护该`timer_base`结构体的自旋锁，这个自旋锁还同时保护包含在`vectors`链表数组中的所有定时器。
+* `running_timer`：该字段指向当前`CPU`正在处理的定时器所对应的`timer_list`结构。
+* `clk`：当前定时器所经过的`jiffies`，用来判断包含的定时器是否已经到期或超时。
+* `next_expiry`：该字段指向该`CPU`下一个即将到期的定时器。最早 (距离超时最近的 `timer`) 的超时时间
+* `cpu`：所属的`CPU`号。
+* `is_idle`：指示是否处于空闲模式下，在`NO_HZ`模式下会用到。
+* `must_forward_clk`：指示是否需要更新当前`clk`的值，在`NO_HZ`模式下会用到。
+* `pending_map`：一个比特位图，时间轮中有几个桶就有几个比特位。如果某个桶内有定时器存在，那么就将相应的比特位置`1`。
 * `vectors`：时间轮所有桶的数组，每一个元素是一个链表。
 
-每个CPU都包含一个或者两个timer_base结构体变量：
+每个`CPU`都包含一个或者两个`timer_base`结构体变量：
 ```c
 static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 ```
 
-其中NR_BASES定义如下：
+其中`NR_BASES`定义如下：
 
 ```
 #ifdef CONFIG_NO_HZ_COMMON
@@ -134,17 +133,17 @@ static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 #endif
 ```
 
-所以如果内核编译选项包含`CONFIG_NO_HZ_COMMON`，则每个CPU有两个timer_base结构体，下标分别是`BASE_STD（Standard）`和`BASE_DEF（Deferrable）`。如果内核编译选项没有包含`CONFIG_NO_HZ_COMMON`，那么每个CPU只有一个timer_base结构体，`BASE_STD`和`BASE_DEF`是同一个。
+所以如果内核编译选项包含`CONFIG_NO_HZ_COMMON`，则每个`CPU`有两个`timer_base`结构体，下标分别是`BASE_STD（Standard）`和`BASE_DEF（Deferrable）`。如果内核编译选项没有包含`CONFIG_NO_HZ_COMMON`，那么每个`CPU`只有一个`timer_base`结构体，`BASE_STD`和`BASE_DEF`是同一个。
 
-为什么支持NO_HZ模式要包含两个timer_base呢？
+为什么支持`NO_HZ`模式要包含两个`timer_base`呢？
 
-这其实和NO_HZ的工作模式有关。如果NO_HZ模式，那么当CPU处于空闲状态时，定时器层是收不到也不需要收到任何Tick的，这样可以节省电力。这时候底层的Tick层（准确说是Tick Sched）不会按照预定好的HZ频率，每次到期后都去不停的设置底层的定时事件设备（启动NO_HZ模式的前提是已经切换到了高精度模式下而高精度模式又要求定时事件设备是单次触发模式的）。但是，如果定时器到期了不就错过去了嘛。所以，在停止Tick之前，Tick层会从定时器层获得最近的下一次定时器到期的时间（通过调用`get_next_timer_interrupt`函数），然后对下面的定时事件设备进行编程，让其在这个最近的到期时刻到期，触发中断。但是，系统中有很多定时器，它们对到期的要求没有那么严格，迟一点到期也不是很要紧。对于这类定时器，在停止Tick之前，就没必要管他们到低什么时候到期。具体点说，**就是Tick层在向定时器层询问下一次最近到期时间时，定时器层更本就不会查找这些可延迟的定时器。**
+这其实和`NO_HZ`的工作模式有关。如果`NO_HZ`模式，那么当`CPU`处于空闲状态时，定时器层是收不到也不需要收到任何`Tick`的，这样可以节省电力。这时候底层的`Tick`层（准确说是`Tick Sched`）不会按照预定好的`HZ`频率，每次到期后都去不停的设置底层的定时事件设备（启动`NO_HZ`模式的前提是已经切换到了高精度模式下而高精度模式又要求定时事件设备是单次触发模式的）。但是，如果定时器到期了不就错过去了嘛。所以，在停止`Tick`之前，`Tick`层会从定时器层获得最近的下一次定时器到期的时间（通过调用`get_next_timer_interrupt`函数），然后对下面的定时事件设备进行编程，让其在这个最近的到期时刻到期，触发中断。但是，系统中有很多定时器，它们对到期的要求没有那么严格，迟一点到期也不是很要紧。对于这类定时器，在停止`Tick`之前，就没必要管他们到低什么时候到期。具体点说，**就是Tick层在向定时器层询问下一次最近到期时间时，定时器层更本就不会查找这些可延迟的定时器。**
 
-对于前面说的第一种定时器存放在BASE_STD指明的那个timer_base结构体里面，而第二种定时器存放在BASE_DEF指明的那个timer_base结构体里面。如果在编译内核的时候没有包含CONFIG_NO_HZ_COMMON，也就是内核不支持NO_HZ模式，Tick从来就没有停止过，当然就不存在前面说的问题，也就没必要分两个了。
+对于前面说的第一种定时器存放在`BASE_STD`指明的那个`timer_base`结构体里面，而第二种定时器存放在`BASE_DEF`指明的那个`timer_base`结构体里面。如果在编译内核的时候没有包含`CONFIG_NO_HZ_COMMON`，也就是内核不支持`NO_HZ`模式，`Tick`从来就没有停止过，当然就不存在前面说的问题，也就没必要分两个了。
 
 ### 定时器层级level
 
-如果在内核配置文件里定义Tick周期大于100的话，一共有8个级别（编号从0到7）；而如果大于100的话，则一共会包含9个级别（编号从0到8）。
+如果在内核配置文件里定义`Tick`周期大于`100`的话，一共有`8`个级别（编号从`0`到`7`）；而如果大于`100`的话，则一共会包含`9`个级别（编号从`0`到`8`）。
 ```
 /* Level depth */
 #if HZ > 100
@@ -154,7 +153,7 @@ static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 #endif
 ```
 
-一个级（Level）里面共有64（LVL_SIZE）个桶（Bucket），用6个比特表示：
+一个级（`Level`）里面共有`64`（`LVL_SIZE`）个桶（`Bucket`），用`6`个比特表示：
 
 ```
 /* Size of each clock level */
@@ -164,9 +163,9 @@ static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 #define LVL_OFFS(n)	((n) * LVL_SIZE)
 ```
 
-宏LVL_OFFS定义了每一级桶下表的起始编号。
+宏`LVL_OFFS`定义了每一级桶下表的起始编号。
 
-所以，对于每个timer_base一共需要的桶的数目定义为：
+所以，对于每个`timer_base`一共需要的桶的数目定义为：
 
 ```
 /*
@@ -179,9 +178,9 @@ static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 
 ### 定时器粒度Granularity
 
-还有一个概念叫做粒度（Granularity），表示系统至少要过多少个Tick才会检查某一个级里面的所有定时器。
+还有一个概念叫做粒度（`Granularity`），表示系统至少要过多少个`Tick`才会检查某一个级里面的所有定时器。
 
-每一级的64个桶的检查粒度是一样的，而不同级内的桶之间检查的粒度不同，级数越小，检查粒度越细。每一级粒度的Tick数由宏定义LVL_CLK_DIV的值决定：
+每一级的`64`个桶的检查粒度是一样的，而不同级内的桶之间检查的粒度不同，级数越小，检查粒度越细。每一级粒度的`Tick`数由宏定义`LVL_CLK_DIV`的值决定：
 
 ```
 /* Clock divisor for the next level */
@@ -195,9 +194,9 @@ static DEFINE_PER_CPU(struct timer_base, timer_bases[NR_BASES]);
 
 $$ {LVL\\_CLK\\_DIV}^{Level} $$
 
-也就是第0级内64个桶中存放的所有定时器每个Tick都会检查，第1级内64个桶中存放的所有定时器每8个Tick才会检查，第2级内64个桶中存放的所有定时器每64个Tick才会检查，以此类推。
+也就是第`0`级内`64`个桶中存放的所有定时器每个`Tick`都会检查，第`1`级内`64`个桶中存放的所有定时器每`8`个`Tick`才会检查，第`2`级内`64`个桶中存放的所有定时器每`64`个Tick才会检查，以此类推。
 
-对应每一个级，都有一个范围，其起始的Tick值由LVL_START定义：
+对应每一个级，都有一个范围，其起始的`Tick`值由`LVL_START`定义：
 
 ```
 /*
@@ -207,7 +206,7 @@ $$ {LVL\\_CLK\\_DIV}^{Level} $$
 #define LVL_START(n)	((LVL_SIZE - 1) << (((n) - 1) * LVL_CLK_SHIFT))
 ```
 
-下面具体举个例子，内核配置选项将HZ配置位1000，那么就一共需要9个级别，每个级别里面有64个桶，所以一共需要576个桶。每个级别的情况如下表：
+下面具体举个例子，内核配置选项将`HZ`配置位`1000`，那么就一共需要`9`个级别，每个级别里面有`64`个桶，所以一共需要`576`个桶。每个级别的情况如下表：
 
 | 级别          | 编号偏移       | 粒度（Granularity））  | 差值范围          |
 | :------------ |---------------:| ----------------------:|------------------:|
@@ -221,7 +220,7 @@ $$ {LVL\\_CLK\\_DIV}^{Level} $$
 |  7 |   448 |  2097152 ms (~34m)|  16777216 ms -  134217727 ms (~4h - ~1d) |
 |  8 |   512 | 16777216 ms (~4h) | 134217728 ms - 1073741822 ms (~1d - ~12d) |
 
-因为配置的是1000Hz，所以每次Tick之间经过1毫秒。可以看出来，定时到期时间距离现在越久，那粒度就越差，误差也越大。
+因为配置的是`1000Hz`，所以每次`Tick`之间经过`1`毫秒。可以看出来，定时到期时间距离现在越久，那粒度就越差，误差也越大。
 
 具体将定时器放到哪一个级下面是由到期时间距离现在时间的差值，也就是距离现在还要过多长时间决定的；而要放到哪个桶里面，则单纯是由到期时间决定的。
 
@@ -273,13 +272,13 @@ static int calc_wheel_index(unsigned long expires, unsigned long clk)
 	return idx;
 }
 ```
-可以看到，**将定时器放到时间轮的哪一级是由距离现在还要过多长时间（准确的说是过多少jiffies）才到期决定的**。该函数首先计算到期jiffies和当前已经过jiffies的差值。然后，根据差值的范围，决定放置到哪一个级别的桶内。
+可以看到，**将定时器放到时间轮的哪一级是由距离现在还要过多长时间（准确的说是过多少`jiffies`）才到期决定的**。该函数首先计算到期`jiffies`和当前已经过`jiffies`的差值。然后，根据差值的范围，决定放置到哪一个级别的桶内。
 
-如果差值为负代表其实定时器已经过期了，就把它放到最低级别（0）内，反正再过一个Tick就能检查到了。
+如果差值为负代表其实定时器已经过期了，就把它放到最低级别（`0`）内，反正再过一个`Tick`就能检查到了。
 
-如果差值过大，强制限定到期时间到WHEEL_TIMEOUT_MAX，并将其放置到最后一级。
+如果差值过大，强制限定到期时间到`WHEEL_TIMEOUT_MAX`，并将其放置到最后一级。
 
-定好级后，最后，调用calc_index函数，计算具体放置到的桶下标。
+定好级后，最后，调用`calc_index`函数，计算具体放置到的桶下标。
 
 ```
 /*
@@ -293,11 +292,11 @@ static inline unsigned calc_index(unsigned expires, unsigned lvl)
 }
 ```
 
-通过`LVL_OFFS`宏计算出对应该级的桶起始下标，每一级下面有64个桶，**具体放到哪个桶下面是根据级号取到期时间的特定6位决定的**。可以看到，最终的结果还要加1，因为定时器不会在到期时间之前被触发，所以放到下一个。在某个级之内，每个桶之间的的定时器到期时间相差一个该级的粒度。
+通过`LVL_OFFS`宏计算出对应该级的桶起始下标，每一级下面有`64`个桶，**具体放到哪个桶下面是根据级号取到期时间的特定6位决定的**。可以看到，最终的结果还要加`1`，因为定时器不会在到期时间之前被触发，所以放到下一个。在某个级之内，每个桶之间的的定时器到期时间相差一个该级的粒度。
 
 #### 通过定时器找到对应的timer_base结构体
 
-定时器层一般调用`lock_timer_base`函数，找到定时器所对应的timer_base结构体，同时获得timer_base结构体内的自旋锁并关闭中断：
+定时器层一般调用`lock_timer_base`函数，找到定时器所对应的`timer_base`结构体，同时获得`timer_base`结构体内的自旋锁并关闭中断：
 
 
 ```
@@ -339,11 +338,11 @@ static struct timer_base *lock_timer_base(struct timer_list *timer,
 }
 ```
 
-该函数会获得定时器内的标志字段，判断其是不是正在迁移的过程中，如果是的话就像自旋锁一样循环等待其完成。如果没有在迁移，则调用get_timer_base函数，通过标志位中的CPU号来获得timer_base结构体。在获得了自旋锁并关闭中断之后，还要判断一下定时器当前的标志位是否和之前读取的相同，如果不同则释放锁，再走一次循环，否则直接返回找到的timer_base结构体。
+该函数会获得定时器内的标志字段，判断其是不是正在迁移的过程中，如果是的话就像自旋锁一样循环等待其完成。如果没有在迁移，则调用`get_timer_base`函数，通过标志位中的`CPU`号来获得`timer_base`结构体。在获得了自旋锁并关闭中断之后，还要判断一下定时器当前的标志位是否和之前读取的相同，如果不同则释放锁，再走一次循环，否则直接返回找到的`timer_base`结构体。
 
-注意，lock_timer_base函数返回时，是已经持有了timer_base内的自旋锁，并且本地中断是关闭的。
+注意，`lock_timer_base`函数返回时，是已经持有了`timer_base`内的自旋锁，并且本地中断是关闭的。
 
-我们接着来看看get_timer_base函数：
+我们接着来看看`get_timer_base`函数：
 
 ```
 static inline struct timer_base *get_timer_base(u32 tflags)
@@ -352,7 +351,7 @@ static inline struct timer_base *get_timer_base(u32 tflags)
 }
 ```
 
-因为定时器的flags字段包含了CPU号的信息，所以直接取出来，然后调用get_timer_cpu_base函数：
+因为定时器的`flags`字段包含了`CPU`号的信息，所以直接取出来，然后调用`get_timer_cpu_base`函数：
 
 ```
 static inline struct timer_base *get_timer_cpu_base(u32 tflags, u32 cpu)
@@ -369,12 +368,12 @@ static inline struct timer_base *get_timer_cpu_base(u32 tflags, u32 cpu)
 }
 ```
 
-这个函数就很简单了，直接通过CPU号找到对应的Per CPU变量timer_bases。前面提到了，如果编译选项中包含NO_HZ的支持，则timer_bases其实包含了两个timer_base结构体，一个给标准的定时器，一个给可延迟的定时器。所以，该函数会判断定时器是否是可延迟的，如果不是或者不支持NO_HZ则返回BASE_STD编号的timer_base结构体；如果定时器是可延迟的，并且内核支持NO_HZ模式，则需要返回BASE_DEF编号的timer_base结构体。
+这个函数就很简单了，直接通过`CPU`号找到对应的`Per CPU`变量`timer_bases`。前面提到了，如果编译选项中包含`NO_HZ`的支持，则`timer_bases`其实包含了两个`timer_base`结构体，一个给标准的定时器，一个给可延迟的定时器。所以，该函数会判断定时器是否是可延迟的，如果不是或者不支持`NO_HZ`则返回`BASE_STD`编号的`timer_base`结构体；如果定时器是可延迟的，并且内核支持`NO_HZ`模式，则需要返回`BASE_DEF`编号的`timer_base`结构体。
 
 
 #### 定时器的删除
 
-定时器的删除是通过调用函数del_timer实现的：
+定时器的删除是通过调用函数`del_timer`实现的：
 
 ```
 /**
@@ -407,7 +406,7 @@ int del_timer(struct timer_list *timer)
 EXPORT_SYMBOL(del_timer);
 ```
 
-先调用timer_pending函数判断定时器是否还存在于某个链表中，如果已经不在任何链表中了，证明已经被删除了，直接返回。
+先调用`timer_pending`函数判断定时器是否还存在于某个链表中，如果已经不在任何链表中了，证明已经被删除了，直接返回。
 
 ```
 /**
@@ -427,7 +426,7 @@ static inline int timer_pending(const struct timer_list * timer)
 ```
 这个函数就是检查定时器内的链表元素的向前指针是否是空指针，也就意味着该定时器没有被添加进任何链表中。
 
-如果还存在于某个链表中，则继续执行删除的动作。先通过定时器找到对应的timer_base结构体并上锁，然后调用detach_if_pending函数将定时器从链表中解除，最后释放锁并返回。
+如果还存在于某个链表中，则继续执行删除的动作。先通过定时器找到对应的`timer_base`结构体并上锁，然后调用`detach_if_pending`函数将定时器从链表中解除，最后释放锁并返回。
 
 ```
 static int detach_if_pending(struct timer_list *timer, struct timer_base *base,
@@ -446,7 +445,7 @@ static int detach_if_pending(struct timer_list *timer, struct timer_base *base,
 }
 
 ```
-该函数先调用`timer_get_idx`函数从定时器的`flags`字段中抽取出存放定时器的桶编号（`(timer->flags & TIMER_ARRAYMASK) >> TIMER_ARRAYSHIFT`），接着再次判断定时器是否已经被解除，如果仍然没有还需要判断当前需要解除的定时器是否是对应桶内的最后一个定时器，如果是的话要将对应timer_base结构体内的pending_map变量中的对应标志位清0。最后调用detach_timer函数正式解除定时器：
+该函数先调用`timer_get_idx`函数从定时器的`flags`字段中抽取出存放定时器的桶编号（`(timer->flags & TIMER_ARRAYMASK) >> TIMER_ARRAYSHIFT`），接着再次判断定时器是否已经被解除，如果仍然没有还需要判断当前需要解除的定时器是否是对应桶内的最后一个定时器，如果是的话要将对应`timer_base`结构体内的`pending_map`变量中的对应标志位清`0`。最后调用`detach_timer`函数正式解除定时器：
 
 ```
 static inline void detach_timer(struct timer_list *timer, bool clear_pending)
@@ -462,11 +461,11 @@ static inline void detach_timer(struct timer_list *timer, bool clear_pending)
 }
 ```
 
-detach_timer就完全是链表的操作了，想将自己从对应链表中删除，如果设置了clear_pending的话，将entry的前向指针设置位空（前面说的timer_pending函数就是通过这个来判断定时器是否已经添加进某个链表中的），后向指针设置为LIST_POISON2。
+`detach_timer`就完全是链表的操作了，想将自己从对应链表中删除，如果设置了`clear_pending`的话，将`entry`的前向指针设置位空（前面说的`timer_pending`函数就是通过这个来判断定时器是否已经添加进某个链表中的）。后向指针设置为`LIST_POISON2`。
 
 #### 定时器的添加和修改
 
-要向系统中添加一个定时器，需要调用add_timer函数：
+要向系统中添加一个定时器，需要调用`add_timer`函数：
 
 ```c
 /**
@@ -491,7 +490,7 @@ void add_timer(struct timer_list *timer)
 EXPORT_SYMBOL(add_timer);
 
 ```
-先调用timer_pending函数，看要添加的定时器是否已经被添加过了，如果已经添加过了，会报内核错误。接着调用了mod_timer函数：
+先调用`timer_pending`函数，看要添加的定时器是否已经被添加过了，如果已经添加过了，会报内核错误。接着调用了`mod_timer`函数：
 
 ```
 /**
@@ -521,9 +520,9 @@ int mod_timer(struct timer_list *timer, unsigned long expires)
 EXPORT_SYMBOL(mod_timer);
 ```
 
-mod_timer函数只是简单封装了一下__mod_timer函数，后者是定时器层的核心函数，后面我们会分析。
+`mod_timer`函数只是简单封装了一下`__mod_timer`函数，后者是定时器层的核心函数，后面我们会分析。
 
-如果我们要修改一个已经存在的定时器，比如说减小其到期时间，要使用timer_reduce函数：
+如果我们要修改一个已经存在的定时器，比如说减小其到期时间，要使用`timer_reduce`函数：
 
 ```
 /**
@@ -542,17 +541,17 @@ int timer_reduce(struct timer_list *timer, unsigned long expires)
 EXPORT_SYMBOL(timer_reduce);
 ```
 
-其也最终会调用__mod_timer函数。该函数有三个参数，第一个是要添加或修改的定时器；第二个是到期时间，如果是新添加的定时器，就将其设置成定时器自己的到期时间；第三个参数是模式，目前系统中共有两个：
+其也最终会调用`__mod_timer`函数。该函数有三个参数，第一个是要添加或修改的定时器；第二个是到期时间，如果是新添加的定时器，就将其设置成定时器自己的到期时间；第三个参数是模式，目前系统中共有两个：
 
 ```
 #define MOD_TIMER_PENDING_ONLY		0x01
 #define MOD_TIMER_REDUCE		0x02
 ```
 
-* MOD_TIMER_PENDING_ONLY表示本次修改只针对还存在在系统内的定时器，如果定时器已经被删除了则不会再将其激活。
-* MOD_TIMER_REDUCE则表示本次修改只会将定时器的到期值减小。
+* `MOD_TIMER_PENDING_ONLY`表示本次修改只针对还存在在系统内的定时器，如果定时器已经被删除了则不会再将其激活。
+* `MOD_TIMER_REDUCE`则表示本次修改只会将定时器的到期值减小。
 
-下面我们来重点分析一下__mod_timer函数：
+下面我们来重点分析一下`__mod_timer`函数：
 
 ```
 static inline int
@@ -626,7 +625,7 @@ __mod_timer(struct timer_list *timer, unsigned long expires, unsigned int option
 		goto out_unlock;
 	//获得系统指定的最合适的timer_base结构体
 	new_base = get_target_base(base, timer->flags);
-	//如果定时器指定的和系统挑选的timer_base结构体不一直则可能需要迁移
+	//如果定时器指定的和系统挑选的timer_base结构体不一致则可能需要迁移
 	if (base != new_base) { 
 		/*
 		 * We are trying to schedule the timer on the new base.
@@ -674,7 +673,7 @@ out_unlock:
 }
 ```
 
-首先，可以看到该函数在获得了定时器对应的timer_base结构体后，都需要调用forward_timer_base函数更新timer_base结构体中的clk变量：
+首先，可以看到该函数在获得了定时器对应的`timer_base`结构体后，都需要调用`forward_timer_base`函数更新`timer_base`结构体中的`clk`变量：
 
 ```
 static inline void forward_timer_base(struct timer_base *base)
@@ -708,15 +707,15 @@ static inline void forward_timer_base(struct timer_base *base)
 }
 ```
 
-forward_timer_base函数只有在内核在编译时打开CONFIG_NO_HZ_COMMON编译选项的时候才有实际的作用。这是因为，如果内核不支持NO_HZ模式的话，那Tick就不会中断，每次Tick到来时，clk都会得到更新，就不需要调用forward_timer_base函数来补了。相反，在支持NO_HZ模式时，CPU如果处于空闲状态，是不会收到任何Tick的，在这段时间内对应CPU的timer_base结构体中的clk就肯定不会得到 更新，因此需要调用该函数来补。补的条件有两个，首先必须设置了must_forward_clk（后面会看到在处理定时期到期时会关闭must_forward_clk），还有就是当前的jiffies和clk中记录的已经经过的jiffies相差大于等于2（小于2基本说明还没进空闲模式）。
+`forward_timer_base`函数只有在内核在编译时打开`CONFIG_NO_HZ_COMMON`编译选项的时候才有实际的作用。这是因为，如果内核不支持`NO_HZ`模式的话，那`Tick`就不会中断，每次`Tick`到来时，`clk`都会得到更新，就不需要调用`forward_timer_base`函数来补了。相反，在支持`NO_HZ`模式时，`CPU`如果处于空闲状态，是不会收到任何`Tick`的，在这段时间内对应`CPU`的`timer_base`结构体中的`clk`就肯定不会得到更新，因此需要调用该函数来补。补的条件有两个，首先必须设置了`must_forward_clk`（后面会看到在处理定时期到期时会关闭`must_forward_clk`），还有就是当前的`jiffies`和`clk`中记录的已经经过的`jiffies`相差大于等于`2`（小于`2`基本说明还没进空闲模式）。
 
-最后，如果下一个到期时间在现在的jiffies之后，则将clk设置为当前的jiffies；如果当前的jiffies已经超过了下一个到期时间（某些定时器已经过期了），则将clk设置为下一个到期时间，一般对于可延迟定时器会出现这种情况。
+最后，如果下一个到期时间在现在的`jiffies`之后，则将`clk`设置为当前的`jiffies`；如果当前的`jiffies`已经超过了下一个到期时间（某些定时器已经过期了），则将`clk`设置为下一个到期时间，一般对于可延迟定时器会出现这种情况。
 
-**每次都要补的目的其实是为了尽量提高定时器的精度，前面已经说过了，到期时间距离clk越近，就会将其放到级别越低的桶里面，检查的Tick间隔就会越小，当然精度越高**。如果长期不补clk的值，那即使到期时间只在1个Tick之后，也有可能被放到级别较大的桶内，哪怕是放到级别为1的桶中，都要每8个Tick才会被检查一次，最差情况会延迟7个Tick。
+**每次都要补的目的其实是为了尽量提高定时器的精度，前面已经说过了，到期时间距离`clk`越近，就会将其放到级别越低的桶里面，检查的`Tick`间隔就会越小，当然精度越高**。如果长期不补`clk`的值，那即使到期时间只在`1`个Tick之后，也有可能被放到级别较大的桶内，哪怕是放到级别为`1`的桶中，都要每`8`个`Tick`才会被检查一次，最差情况会延迟`7`个`Tick`。
 
 同时，我们还可以看出，**一个定时器一旦加入了一个桶里之后，除非到期删除或者主动修改了定时器到期时间，否则就再也不会移动了，不会因为时间的流逝，距离到期时间越近而移动到更低级别的桶里面**。
 
-最后，再提一下，在调用enqueue_timer函数将定时器放到timer_base的某个桶中后，一般还会接着调用trigger_dyntick_cpu函数：
+最后，再提一下，在调用`enqueue_timer`函数将定时器放到`timer_base`的某个桶中后，一般还会接着调用`trigger_dyntick_cpu`函数：
 
 ```c
 static void
@@ -758,12 +757,12 @@ trigger_dyntick_cpu(struct timer_base *base, struct timer_list *timer)
 
 ```
 
-这个函数主要是解决下面这种情况，如果要将定时器插入一个正处于空闲状态的CPU下的timer_base的时候，那个CPU的定时事件设备应该是已经被编程到了所有包含的定时器中最近要到期的那个时刻，这时候恰好要插入的定时器的到期时刻比原来最近的到期时刻还要早的话，那这个新被插入的定时器一定会超时，因为在这之前都不会有Tick到来。对于这种情况，只有调用wake_up_nohz_cpu函数将那个空闲的CPU唤醒，让它重新再检查一遍。
+这个函数主要是解决下面这种情况，如果要将定时器插入一个正处于空闲状态的`CPU`下的`timer_base`的时候，那个`CPU`的定时事件设备应该是已经被编程到了所有包含的定时器中最近要到期的那个时刻，这时候恰好要插入的定时器的到期时刻比原来最近的到期时刻还要早的话，那这个新被插入的定时器一定会超时，因为在这之前都不会有`Tick`到来。对于这种情况，只有调用`wake_up_nohz_cpu`函数将那个空闲的`CPU`唤醒，让它重新再检查一遍。
 
 
 #### 定时器的迁移
 
-前面分析__mod_timer函数时已经碰到了定时器迁移的情况，定时器切换发生在定时器指定的CPU上的timer_base和系统调用get_target_base函数挑选的timer_base不一致的情况：
+前面分析`__mod_timer`函数时已经碰到了定时器迁移的情况，定时器切换发生在定时器指定的`CPU`上的`timer_base`和系统调用`get_target_base`函数挑选的`timer_base`不一致的情况：
 
 
 ```
@@ -778,21 +777,21 @@ get_target_base(struct timer_base *base, unsigned tflags)
 	return get_timer_this_cpu_base(tflags);
 }
 ```
-如果没有配置CONFIG_SMP，那么系统中只有一个CPU，也就无处迁移了。
+如果没有配置`CONFIG_SMP`，那么系统中只有一个`CPU`，也就无处迁移了。
 
-而如果内核没有配置CONFIG_NO_HZ_COMMON，则Tick不会中断，只需要返回当前CPU中对应的timer_base结构体就行了。
+而如果内核没有配置`CONFIG_NO_HZ_COMMON`，则`Tick`不会中断，只需要返回当前`CPU`中对应的`timer_base`结构体就行了。
 
-timers_migration_enabled值将在切换到NO_HZ模式时变成True，而退出NO_HZ模式时变成False。**所以只有在切换到NO_HZ模式下，且定时器没有绑死到某个CPU的情况下，才会选择别的CPU上的timer_base，否则一定是当前CPU上的timer_base**。
+`timers_migration_enabled`值将在切换到`NO_HZ`模式时变成`True`，而退出`NO_HZ`模式时变成`False`。**所以只有在切换到NO_HZ模式下，且定时器没有绑死到某个CPU的情况下，才会选择别的CPU上的timer_base，否则一定是当前CPU上的timer_base**。
 
-`get_nohz_timer_target`函数会判断当前的CPU是否处于空闲状态，如果不是空闲状态，那还是返回当前的CPU编号，如果真是空闲的话，会找到最近的一个忙的处理器，并返回其编号。所以，一共应该有两种情况会出现要迁移定时器的行为：
+`get_nohz_timer_target`函数会判断当前的CPU是否处于空闲状态，如果不是空闲状态，那还是返回当前的`CPU`编号，如果真是空闲的话，会找到最近的一个忙的处理器，并返回其编号。所以，一共应该有两种情况会出现要迁移定时器的行为：
 
-* 在当前CPU上尝试修改一个没有绑定到当前CPU上的定时器；
-* 当前CPU空闲的时候，修改任何绑定到当前CPU上的定时器。
+* 在当前`CPU`上尝试修改一个没有绑定到当前`CPU`上的定时器；
+* 当前`CPU`空闲的时候，修改任何绑定到当前`CPU`上的定时器。
 
 
 #### Tick到来的处理
 
-当一个Tick到来时，无论是Tick层还是Tick模拟层最终都会调用update_process_times通知定时器层：
+当一个`Tick`到来时，无论是`Tick`层还是`Tick`模拟层最终都会调用`update_process_times`通知定时器层：
 
 ```
 /*
@@ -817,7 +816,7 @@ void update_process_times(int user_tick)
 }
 ```
 
-除了一些其它功能外，该函数会调用run_local_timers函数处理当前CPU下的所有定时器：
+除了一些其它功能外，该函数会调用`run_local_timers`函数处理当前`CPU`下的所有定时器：
 
 ```
 /*
@@ -843,9 +842,9 @@ void run_local_timers(void)
 }
 
 ```
-该函数先取出当前CPU下BASE_STD编号的timer_base结构体。如果当前系统的jiffies小于结构体中的clk变量的值，表示该结构体内包含的所有定时器都还没有到期。如果内核没有配置CONFIG_NO_HZ_COMMON编译选项，则直接退出（没有配置NO_HZ模式，也就没有第二个timer_base结构体了）。否则继续检查BASE_DEF标号的timer_base结构体，如果全都没有到期的定时器，就没必要激活软中断继续处理了，直接退出就可以了。如果有可能有任何定时器到期的话，则激活TIMER_SOFTIRQ软中断。这个函数还会调用hrtimer_run_queues函数通知高精度定时器层。所以，在高精度定时器层没有切换到高精度模式前，其定时触发其实是靠精度较低的定时器层驱动的。
+该函数先取出当前`CPU`下`BASE_STD`编号的`timer_base`结构体。如果当前系统的`jiffies`小于结构体中的`clk`变量的值，表示该结构体内包含的所有定时器都还没有到期。如果内核没有配置`CONFIG_NO_HZ_COMMON`编译选项，则直接退出（没有配置`NO_HZ`模式，也就没有第二个`timer_base`结构体了）。否则继续检查`BASE_DEF`标号的`timer_base`结构体，如果全都没有到期的定时器，就没必要激活软中断继续处理了，直接退出就可以了。如果有可能有任何定时器到期的话，则激活`TIMER_SOFTIRQ`软中断。这个函数还会调用`hrtimer_run_queues`函数通知高精度定时器层。所以，在高精度定时器层没有切换到高精度模式前，其定时触发其实是靠精度较低的定时器层驱动的。
 
-TIMER_SOFTIRQ软中断的处理函数是在init_timers函数里面初始化的：
+`TIMER_SOFTIRQ`软中断的处理函数是在`init_timers`函数里面初始化的：
 
 ```
 void __init init_timers(void)
@@ -856,7 +855,7 @@ void __init init_timers(void)
 
 ```
 
-可以看到TIMER_SOFTIRQ软中断的处理函数是run_timer_softirq：
+可以看到`TIMER_SOFTIRQ`软中断的处理函数是`run_timer_softirq`：
 
 ```
 /*
@@ -871,7 +870,7 @@ static __latent_entropy void run_timer_softirq(struct softirq_action *h)
 		__run_timers(this_cpu_ptr(&timer_bases[BASE_DEF]));
 }
 ```
-就是分别调用__run_timers函数处理本CPU下的BASE_STD和BASE_DEF两个timer_base中包含的所有定时器：
+就是分别调用`__run_timers`函数处理本`CPU`下的`BASE_STD`和`BASE_DEF`两个`timer_base`中包含的所有定时器：
 
 ```
 /**
@@ -918,9 +917,9 @@ static inline void __run_timers(struct timer_base *base)
 
 ```
 
-该函数其实很简单，基本上就是先调用collect_expired_timers函数获得所有到期定时器，然后调用expire_timers函数处理所有的到期定时器。如果表示当前时间的系统jiffies值等于或晚于timer_base中的clk值，表明确实是经过了一些Tick，这时候就需要一个Tick一个Tick的追查到底有多少个定时器已经到期了，直到追到当前时间为止。
+该函数其实很简单，基本上就是先调用`collect_expired_timers`函数获得所有到期定时器，然后调用`expire_timers`函数处理所有的到期定时器。如果表示当前时间的系统`jiffies`值等于或晚于`timer_base`中的`clk`值，表明确实是经过了一些`Tick`，这时候就需要一个`Tick`一个`Tick`的追查到底有多少个定时器已经到期了，直到追到当前时间为止。
 
-处理到期定时器的expire_timers函数相对简单，我们先来看看：
+处理到期定时器的`expire_timers`函数相对简单，我们先来看看：
 
 ```
 static void expire_timers(struct timer_base *base, struct hlist_head *head)
@@ -949,9 +948,9 @@ static void expire_timers(struct timer_base *base, struct hlist_head *head)
 }
 ```
 
-该函数的第一个参数是对应的timer_base结构体，第二个参数是要处理的到期定时器的列表。如果定时器的标志位设置了TIMER_IRQSAFE标志位，除了加锁和释放锁，还需要同时关闭中断和打开中断。
+该函数的第一个参数是对应的`timer_base`结构体，第二个参数是要处理的到期定时器的列表。如果定时器的标志位设置了`TIMER_IRQSAFE`标志位，除了加锁和释放锁，还需要同时关闭中断和打开中断。
 
-收集所有到期定时器是在collect_expired_timers函数中实现的：
+收集所有到期定时器是在`collect_expired_timers`函数中实现的：
 
 ```
 #ifdef CONFIG_NO_HZ_COMMON
@@ -994,7 +993,7 @@ static inline int collect_expired_timers(struct timer_base *base,
 }
 #endif
 ```
-函数第一个参数是要收集的timer_base结构体，第二个参数是一个输出参数，是一个链表数组，按照级编号。在正式收集之前，会检查是不是刚从空闲模式中出来。在空闲模式下，不会收到Tick，所以就会导致当前时间jiffies和timer_base的clk值之间差距比较大。如果是这样的话，还是像处理普通模式一样一个Tick一个Tick追就太没有效率了，因为理论上在Tick中断期间是没有要到期的定时器的。所以，可以调用__next_timer_interrupt函数找到最近到期定时器的到期时间，并更新clk的值，再去收集。
+函数第一个参数是要收集的`timer_base`结构体，第二个参数是一个输出参数，是一个链表数组，按照级编号。在正式收集之前，会检查是不是刚从空闲模式中出来。在空闲模式下，不会收到`Tick`，所以就会导致当前时间`jiffies`和`timer_base`的`clk`值之间差距比较大。如果是这样的话，还是像处理普通模式一样一个`Tick`一个`Tick`追就太没有效率了，因为理论上在`Tick`中断期间是没有要到期的定时器的。所以，可以调用`__next_timer_interrupt`函数找到最近到期定时器的到期时间，并更新`clk`的值，再去收集。
 
 
 ```
@@ -1067,11 +1066,11 @@ static unsigned long __next_timer_interrupt(struct timer_base *base)
 }
 
 ```
-该函数搜寻所有级下面的所有桶中第一个马上要到期定时器的到期时间。clk会在切换到下一级搜索前向右移3位，并且如果最低3位不为0的时候，移位后还需要加1。这是因为这个函数是用来找马上要到期的定时器，不是现在已经到期的，所以应该要找下一级的下一个。
+该函数搜寻所有级下面的所有桶中第一个马上要到期定时器的到期时间。`clk`会在切换到下一级搜索前向右移`3`位，并且如果最低`3`位不为`0`的时候，移位后还需要加`1`。这是因为这个函数是用来找马上要到期的定时器，不是现在已经到期的，所以应该要找下一级的下一个。
 
 前面提到过，定时器是不会因为快要到期了而移动位置的，因此有可能在高级别的桶内的到期时间反而早于在低级别桶内的到期时间，所以需要每个级别都要搜索。
 
-next_pending_bucket函数用来获得下一个到期桶的编号：
+`next_pending_bucket`函数用来获得下一个到期桶的编号：
 
 ```
 /*
@@ -1093,14 +1092,14 @@ static int next_pending_bucket(struct timer_base *base, unsigned offset,
 	return pos < start ? pos + LVL_SIZE - start : -1;
 }
 ```
-注意，参数clk不是timer_base的clk值，而是对应该级的6位。函数返回的数值是在某一个级下的桶偏移距离，也就是编号的范围是0到63，同时还要考虑回滚的情况。这个函数是通过搜索timer_base的pending_map字段查找的，前面提过，在向某个桶中插入定时器的时候会设置pending_map的相应位。这个函数先从当前位置向该级最后一个桶的位置查找，如果找到了那就返回找到的位置和当前位置的距离：
+注意，参数`clk`不是`timer_base`的`clk`值，而是对应该级的`6`位。函数返回的数值是在某一个级下的桶偏移距离，也就是编号的范围是`0`到`63`，同时还要考虑回滚的情况。这个函数是通过搜索`timer_base`的`pending_map`字段查找的，前面提过，在向某个桶中插入定时器的时候会设置`pending_map`的相应位。这个函数先从当前位置向该级最后一个桶的位置查找，如果找到了那就返回找到的位置和当前位置的距离：
 
 ![](./next_pending_bucket1.png)
 如果找不到，还会继续从该级第一个桶的位置向当前位置查找，但最后计算距离的时候，要考虑回滚，也就是当前位置到该级最后一个桶的位置之间的距离加上该级第一个桶的位置到找到的位置之间的距离：
 
 ![](./next_pending_bucket2.png)
 
-在更新完timver_base的clk值之后，collect_expired_timers函数最终会调用__collect_expired_timers函数真正去收集到期的定时器：
+在更新完`timer_base`的`clk`值之后，`collect_expired_timers`函数最终会调用`__collect_expired_timers`函数真正去收集到期的定时器：
 
 ```
 static int __collect_expired_timers(struct timer_base *base,
@@ -1131,9 +1130,9 @@ static int __collect_expired_timers(struct timer_base *base,
 	return levels;
 }
 ```
-该函数其实就是根据timer_base的clk值到每个级下的相应桶内查找看有没有到期的定时器。如果下一级的检查粒度还没达到就退出循环，在该级停止。
+该函数其实就是根据`timer_base`的`clk`值到每个级下的相应桶内查找看有没有到期的定时器。如果下一级的检查粒度还没达到就退出循环，在该级停止。
 
-所以，总结一下，时间轮不是定时器在滚动，而是到期的位置在不停的移动。定时器的位置在添加的一刹那，根据到期时间距离当前时间的间隔，以及到期时间对应相应级的6位固定好了，而且一旦固定下来就不会移动了。每当Tick到来，都会更新timer_base的clk值，计算所指向桶的位置，然后通过pending_map判断桶里面是不是存在定时器，如果有的话那它们一定已经到期甚至是超时了。同时，只有在相应时刻（粒度对应的3位全为0时）才会检查下一级。
+所以，总结一下，时间轮不是定时器在滚动，而是到期的位置在不停的移动。定时器的位置在添加的一刹那，根据到期时间距离当前时间的间隔，以及到期时间对应相应级的`6`位固定好了，而且一旦固定下来就不会移动了。每当`Tick`到来，都会更新`timer_base`的`clk`值，计算所指向桶的位置，然后通过`pending_map`判断桶里面是不是存在定时器，如果有的话那它们一定已经到期甚至是超时了。同时，只有在相应时刻（粒度对应的`3`位全为`0`时）才会检查下一级。
 
 
 ### 低精度定时器的应用
@@ -1149,8 +1148,8 @@ static int __collect_expired_timers(struct timer_base *base,
 * msleep
 * msleep_interruptible
 
-这里我们主要分析一下schedule_timeout的代码，其它的接口都是对schedule_timeout的封装。
-schedule_timeout接口的作用是使当前线程睡眠timeout这么长的时间，然后继续运行，其代码如下：
+这里我们主要分析一下`schedule_timeout`的代码，其它的接口都是对`schedule_timeout`的封装。
+`schedule_timeout`接口的作用是使当前线程睡眠`timeout`这么长的时间，然后继续运行，其代码如下：
 
 
 ```
@@ -1236,14 +1235,14 @@ signed long __sched schedule_timeout(signed long timeout)
 EXPORT_SYMBOL(schedule_timeout);
 ```
 
-该函数只有一个参数timeout，当其值有两个特殊的值：
+该函数只有一个参数`timeout`，当其值有两个特殊的值：
 
-* 当timeout的值为MAX_SCHEDULE_TIMEOUT时，发生一次调度，该函数返回MAX_SCHEDULE_TIMEOUT；
-* 当timeout的值小于0时，直接打印告警，并不进行任何睡眠操作，函数返回0.
+* 当`timeout`的值为`MAX_SCHEDULE_TIMEOUT`时，发生一次调度，该函数返回`MAX_SCHEDULE_TIMEOUT`；
+* 当`timeout`的值小于`0`时，直接打印告警，并不进行任何睡眠操作，函数返回`0`。
  
-正常情况下，当timeout大于等于0且小于MAX_SCHEDULE_TIMEOUT是，会启动一个定时器，设置其超时时间为当前时间jiffies加上timeout的时间。并触发一下调度。
+正常情况下，当`timeout`大于等于`0`且小于`MAX_SCHEDULE_TIMEOUT`是，会启动一个定时器，设置其超时时间为当前时间`jiffies`加上`timeout`的时间。并触发一下调度。
 
-当该定时器到期时，其回调函数为process_timeout，代码如下：
+当该定时器到期时，其回调函数为`process_timeout`，代码如下：
 ```
 static void process_timeout(struct timer_list *t)
 {
